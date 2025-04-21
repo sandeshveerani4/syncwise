@@ -52,6 +52,17 @@ export function JoinProjectForm() {
         throw new Error(errorData.message || "Failed to join project");
       }
 
+      // Mark user as onboarded
+      const onboardResponse = await fetch("/api/user/onboard", {
+        method: "POST",
+      });
+
+      if (!onboardResponse.ok) {
+        console.error(
+          "Failed to mark user as onboarded, but project was joined"
+        );
+      }
+
       toast({
         title: "Success!",
         description: "You've joined the project successfully.",

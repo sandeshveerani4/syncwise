@@ -58,11 +58,11 @@ export function LoginForm() {
           variant: "destructive",
         });
       } else {
-        // Check if user has any projects
-        const userResponse = await fetch("/api/user/projects");
+        // Check if user is onboarded
+        const userResponse = await fetch("/api/user/profile");
         const userData = await userResponse.json();
 
-        if (userData.projects && userData.projects.length > 0) {
+        if (userData.user?.onboarded) {
           router.push("/dashboard");
         } else {
           router.push("/onboarding");

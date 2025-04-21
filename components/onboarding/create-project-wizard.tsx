@@ -17,16 +17,21 @@ type ProjectData = {
     connected: boolean;
     token: string;
     repositories: string[];
+    owner: string;
+    repository: string;
   };
   jira: {
     connected: boolean;
     domain: string;
     token: string;
+    email: string;
     projects: string[];
   };
   slack: {
     connected: boolean;
     token: string;
+    workspace?: string;
+    channel?: string;
     channels: string[];
   };
 };
@@ -43,16 +48,21 @@ export function CreateProjectWizard() {
       connected: false,
       token: "",
       repositories: [],
+      owner: "",
+      repository: "",
     },
     jira: {
       connected: false,
       domain: "",
       token: "",
+      email: "",
       projects: [],
     },
     slack: {
       connected: false,
       token: "",
+      workspace: "",
+      channel: "",
       channels: [],
     },
   });
@@ -94,7 +104,16 @@ export function CreateProjectWizard() {
         throw new Error(errorData.message || "Failed to create project");
       }
 
-      const data = await response.json();
+      // Mark user as onboarded
+      const onboardResponse = await fetch("/api/user/onboard", {
+        method: "POST",
+      });
+
+      if (!onboardResponse.ok) {
+        console.error(
+          "Failed to mark user as onboarded, but project was created"
+        );
+      }
 
       toast({
         title: "Project Created!",

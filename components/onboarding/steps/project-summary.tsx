@@ -1,50 +1,69 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { GitHubLogoIcon, ChatBubbleIcon, MixIcon, CheckIcon, CrossCircledIcon } from "@radix-ui/react-icons"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  GitHubLogoIcon,
+  ChatBubbleIcon,
+  MixIcon,
+  CheckIcon,
+  CrossCircledIcon,
+} from "@radix-ui/react-icons";
 
 interface ProjectSummaryProps {
   projectData: {
-    name: string
-    description: string
+    name: string;
+    description: string;
     github: {
-      connected: boolean
-      repositories: string[]
-    }
+      connected: boolean;
+      repositories: string[];
+    };
     jira: {
-      connected: boolean
-      projects: string[]
-    }
+      connected: boolean;
+      projects: string[];
+    };
     slack: {
-      connected: boolean
-      channels: string[]
-    }
-  }
-  onBack: () => void
-  onSubmit: () => void
-  isLoading: boolean
+      connected: boolean;
+      channels: string[];
+    };
+  };
+  onBack: () => void;
+  onSubmit: () => void;
+  isLoading: boolean;
 }
 
-export function ProjectSummary({ projectData, onBack, onSubmit, isLoading }: ProjectSummaryProps) {
+export function ProjectSummary({
+  projectData,
+  onBack,
+  onSubmit,
+  isLoading,
+}: ProjectSummaryProps) {
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium">Project Summary</h3>
-        <p className="text-sm text-muted-foreground">Review your project details before creating</p>
+        <p className="text-sm text-muted-foreground">
+          Review your project details before creating
+        </p>
       </div>
 
       <Card>
         <CardContent className="p-6">
           <div className="space-y-4">
             <div>
-              <h4 className="text-sm font-medium text-muted-foreground">Project Details</h4>
+              <h4 className="text-sm font-medium text-muted-foreground">
+                Project Details
+              </h4>
               <p className="text-lg font-semibold">{projectData.name}</p>
-              {projectData.description && <p className="text-sm">{projectData.description}</p>}
+              {projectData.description && (
+                <p className="text-sm">{projectData.description}</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <h4 className="text-sm font-medium text-muted-foreground">Integrations</h4>
+              <h4 className="text-sm font-medium text-muted-foreground">
+                Integrations
+              </h4>
 
               <div className="flex items-center space-x-2">
                 <GitHubLogoIcon className="h-5 w-5" />
@@ -101,5 +120,5 @@ export function ProjectSummary({ projectData, onBack, onSubmit, isLoading }: Pro
         </Button>
       </div>
     </div>
-  )
+  );
 }

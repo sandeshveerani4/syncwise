@@ -1,16 +1,25 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
-import { MixIcon } from "@radix-ui/react-icons"
-import { Card, CardContent } from "@/components/ui/card"
+import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { MixIcon } from "@radix-ui/react-icons";
+import { Card, CardContent } from "@/components/ui/card";
 
+// Update the form schema to include email field
 const formSchema = z.object({
   domain: z.string().min(1, {
     message: "Jira domain is required.",
@@ -18,70 +27,94 @@ const formSchema = z.object({
   token: z.string().min(1, {
     message: "Jira API token is required.",
   }),
+  email: z.string().email({
+    message: "Valid email is required.",
+  }),
   projects: z.array(z.string()).optional(),
-})
+});
 
+// Update the interface to include email
 interface JiraIntegrationFormProps {
   initialData: {
-    connected: boolean
-    domain: string
-    token: string
-    projects: string[]
-  }
-  onUpdate: (data: { connected: boolean; domain: string; token: string; projects: string[] }) => void
-  onNext: () => void
-  onBack: () => void
+    connected: boolean;
+    domain: string;
+    token: string;
+    email?: string;
+    projects: string[];
+  };
+  onUpdate: (data: {
+    connected: boolean;
+    domain: string;
+    token: string;
+    email: string;
+    projects: string[];
+  }) => void;
+  onNext: () => void;
+  onBack: () => void;
 }
 
-export function JiraIntegrationForm({ initialData, onUpdate, onNext, onBack }: JiraIntegrationFormProps) {
-  const [isConnecting, setIsConnecting] = useState(false)
-  const [isConnected, setIsConnected] = useState(initialData.connected)
+export function JiraIntegrationForm({
+  initialData,
+  onUpdate,
+  onNext,
+  onBack,
+}: JiraIntegrationFormProps) {
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnected, setIsConnected] = useState(initialData.connected);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([
     { id: "proj1", name: "Marketing Website" },
     { id: "proj2", name: "Mobile App" },
     { id: "proj3", name: "Backend API" },
-  ])
-  const [selectedProjects, setSelectedProjects] = useState<string[]>(initialData.projects || [])
+  ]);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>(
+    initialData.projects || []
+  );
 
+  // Add email to the form defaultValues
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       domain: initialData.domain || "",
       token: initialData.token || "",
+      email: initialData.email || "",
       projects: initialData.projects || [],
     },
-  })
+  });
 
   async function connectJira(values: z.infer<typeof formSchema>) {
-    setIsConnecting(true)
+    setIsConnecting(true);
 
     try {
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // In a real app, you would validate the credentials and fetch projects
-      setIsConnected(true)
+      setIsConnected(true);
     } catch (error) {
-      console.error("Failed to connect to Jira", error)
+      console.error("Failed to connect to Jira", error);
     } finally {
-      setIsConnecting(false)
+      setIsConnecting(false);
     }
   }
 
+  // Add email to the onSubmit function
   function onSubmit(values: z.infer<typeof formSchema>) {
     onUpdate({
       connected: isConnected,
       domain: values.domain,
       token: values.token,
+      email: values.email,
       projects: selectedProjects,
-    })
-    onNext()
+    });
+    onNext();
   }
 
   function toggleProject(projectId: string) {
     setSelectedProjects((prev) =>
-      prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId],
-    )
+      prev.includes(projectId)
+        ? prev.filter((id) => id !== projectId)
+        : [...prev, projectId]
+    );
   }
 
   return (
@@ -93,7 +126,10 @@ export function JiraIntegrationForm({ initialData, onUpdate, onNext, onBack }: J
 
       {!isConnected ? (
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(connectJira)} className="space-y-6 rounded-lg border p-4">
+          <form
+            onSubmit={form.handleSubmit(connectJira)}
+            className="space-y-6 rounded-lg border p-4"
+          >
             <FormField
               control={form.control}
               name="domain"
@@ -101,9 +137,32 @@ export function JiraIntegrationForm({ initialData, onUpdate, onNext, onBack }: J
                 <FormItem>
                   <FormLabel>Jira Domain</FormLabel>
                   <FormControl>
-                    <Input placeholder="your-company.atlassian.net" {...field} />
+                    <Input
+                      placeholder="your-company.atlassian.net"
+                      {...field}
+                    />
                   </FormControl>
-                  <FormDescription>Enter your Jira domain (e.g., your-company.atlassian.net)</FormDescription>
+                  <FormDescription>
+                    Enter your Jira domain (e.g., your-company.atlassian.net)
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {/* Add email field to the form */}
+            {/* Add this after the domain field in the form */}
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Jira Email</FormLabel>
+                  <FormControl>
+                    <Input placeholder="your-email@example.com" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    The email address associated with your Jira account
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -115,7 +174,11 @@ export function JiraIntegrationForm({ initialData, onUpdate, onNext, onBack }: J
                 <FormItem>
                   <FormLabel>Jira API Token</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Enter your Jira API token" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="Enter your Jira API token"
+                      {...field}
+                    />
                   </FormControl>
                   <FormDescription>
                     Create an API token from your{" "}
@@ -196,5 +259,5 @@ export function JiraIntegrationForm({ initialData, onUpdate, onNext, onBack }: J
         </Button>
       </div>
     </div>
-  )
+  );
 }

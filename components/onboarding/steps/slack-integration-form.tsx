@@ -1,65 +1,92 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
-import { ChatBubbleIcon } from "@radix-ui/react-icons"
-import { Card, CardContent } from "@/components/ui/card"
+import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChatBubbleIcon } from "@radix-ui/react-icons";
+import { Card, CardContent } from "@/components/ui/card";
 
 const formSchema = z.object({
   token: z.string().min(1, {
     message: "Slack token is required.",
   }),
+  workspace: z.string().optional(),
+  channel: z.string().optional(),
   channels: z.array(z.string()).optional(),
-})
+});
 
 interface SlackIntegrationFormProps {
   initialData: {
-    connected: boolean
-    token: string
-    channels: string[]
-  }
-  onUpdate: (data: { connected: boolean; token: string; channels: string[] }) => void
-  onNext: () => void
-  onBack: () => void
+    connected: boolean;
+    token: string;
+    workspace?: string;
+    channel?: string;
+    channels: string[];
+  };
+  onUpdate: (data: {
+    connected: boolean;
+    token: string;
+    workspace?: string;
+    channel?: string;
+    channels: string[];
+  }) => void;
+  onNext: () => void;
+  onBack: () => void;
 }
 
-export function SlackIntegrationForm({ initialData, onUpdate, onNext, onBack }: SlackIntegrationFormProps) {
-  const [isConnecting, setIsConnecting] = useState(false)
-  const [isConnected, setIsConnected] = useState(initialData.connected)
+export function SlackIntegrationForm({
+  initialData,
+  onUpdate,
+  onNext,
+  onBack,
+}: SlackIntegrationFormProps) {
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnected, setIsConnected] = useState(initialData.connected);
   const [channels, setChannels] = useState<{ id: string; name: string }[]>([
     { id: "channel1", name: "general" },
     { id: "channel2", name: "random" },
     { id: "channel3", name: "project-updates" },
-  ])
-  const [selectedChannels, setSelectedChannels] = useState<string[]>(initialData.channels || [])
+  ]);
+  const [selectedChannels, setSelectedChannels] = useState<string[]>(
+    initialData.channels || []
+  );
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       token: initialData.token || "",
+      workspace: initialData.workspace || "",
+      channel: initialData.channel || "",
       channels: initialData.channels || [],
     },
-  })
+  });
 
   async function connectSlack(values: z.infer<typeof formSchema>) {
-    setIsConnecting(true)
+    setIsConnecting(true);
 
     try {
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // In a real app, you would validate the token and fetch channels
-      setIsConnected(true)
+      setIsConnected(true);
     } catch (error) {
-      console.error("Failed to connect to Slack", error)
+      console.error("Failed to connect to Slack", error);
     } finally {
-      setIsConnecting(false)
+      setIsConnecting(false);
     }
   }
 
@@ -67,15 +94,19 @@ export function SlackIntegrationForm({ initialData, onUpdate, onNext, onBack }: 
     onUpdate({
       connected: isConnected,
       token: values.token,
+      workspace: values.workspace,
+      channel: values.channel,
       channels: selectedChannels,
-    })
-    onNext()
+    });
+    onNext();
   }
 
   function toggleChannel(channelId: string) {
     setSelectedChannels((prev) =>
-      prev.includes(channelId) ? prev.filter((id) => id !== channelId) : [...prev, channelId],
-    )
+      prev.includes(channelId)
+        ? prev.filter((id) => id !== channelId)
+        : [...prev, channelId]
+    );
   }
 
   return (
@@ -87,7 +118,10 @@ export function SlackIntegrationForm({ initialData, onUpdate, onNext, onBack }: 
 
       {!isConnected ? (
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(connectSlack)} className="space-y-6 rounded-lg border p-4">
+          <form
+            onSubmit={form.handleSubmit(connectSlack)}
+            className="space-y-6 rounded-lg border p-4"
+          >
             <FormField
               control={form.control}
               name="token"
@@ -95,7 +129,11 @@ export function SlackIntegrationForm({ initialData, onUpdate, onNext, onBack }: 
                 <FormItem>
                   <FormLabel>Slack Bot Token</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Enter your Slack bot token" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="Enter your Slack bot token"
+                      {...field}
+                    />
                   </FormControl>
                   <FormDescription>
                     Create a Slack app and get a bot token from the{" "}
@@ -107,6 +145,38 @@ export function SlackIntegrationForm({ initialData, onUpdate, onNext, onBack }: 
                     >
                       Slack API dashboard
                     </a>
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="workspace"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Workspace ID (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="T12345678" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Your Slack workspace ID (optional)
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="channel"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Default Channel (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="general" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    The default channel to post messages to
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -176,5 +246,5 @@ export function SlackIntegrationForm({ initialData, onUpdate, onNext, onBack }: 
         </Button>
       </div>
     </div>
-  )
+  );
 }
