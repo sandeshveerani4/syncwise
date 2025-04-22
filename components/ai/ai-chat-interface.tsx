@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AiMessage } from "@/components/ai/ai-message";
-import { SendIcon, Mic, PlusIcon, SettingsIcon } from "lucide-react";
+import { SendIcon, Mic, PlusIcon, SettingsIcon, Loader2 } from "lucide-react";
 
 type MessageType = {
   id: string;
@@ -20,6 +20,7 @@ type MessageType = {
 export function AiChatInterface() {
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [response, setResponse] = useState<MessageType>();
+  const [tool, setTool] = useState<string>();
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -42,18 +43,27 @@ export function AiChatInterface() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
 
-    const ws = new WebSocket("ws://localhost:8000/ws/123");
+    const ws = new WebSocket("ws://localhost:8000/ws/124");
     ws.onmessage = function (event) {
-      setResponse((prev) => ({
-        ...(prev as MessageType),
-        content: (prev?.content ?? "") + event.data,
-      }));
+      const data = JSON.parse(event.data);
+      if (data[0].kwargs.content !== undefined) {
+        if (data[1]["langgraph_node"] === "agent") {
+          setResponse((prev) => ({
+            ...(prev as MessageType),
+            content: (prev?.content ?? "") + data[0].kwargs.content,
+          }));
+        } else {
+          setTool(data[0].kwargs.content);
+        }
+      }
     };
     ws.onerror = function () {
       setIsLoading(false);
+      setTool(undefined);
     };
     ws.onclose = function () {
       setIsLoading(false);
+      setTool(undefined);
     };
     ws.onopen = function () {
       setIsLoading(true);
@@ -78,7 +88,7 @@ export function AiChatInterface() {
 
   return (
     <div className="flex h-[calc(100vh-12rem)] flex-col">
-      <Tabs defaultValue="chat" className="flex-1 overflow-hidden">
+      <Tabs defaultValue="chat" className="flex-1 overflow-auto">
         <div className="flex items-center justify-between mb-4">
           <TabsList>
             <TabsTrigger value="chat">Chat</TabsTrigger>
@@ -97,9 +107,9 @@ export function AiChatInterface() {
 
         <TabsContent
           value="chat"
-          className="flex-1 overflow-hidden flex flex-col mt-0"
+          className="flex-1 overflow-auto flex flex-col mt-0"
         >
-          <Card className="flex-1 overflow-hidden flex flex-col">
+          <Card className="flex-1 overflow-auto flex flex-col">
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
                 {messages.map((message) => (
@@ -108,6 +118,10 @@ export function AiChatInterface() {
                 {isLoading && response && (
                   <AiMessage key="final" message={response} />
                 )}
+                {isLoading && (
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                )}
+                {isLoading && tool && <div className="text-sm">{tool}</div>}
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
