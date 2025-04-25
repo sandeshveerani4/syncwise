@@ -68,6 +68,7 @@ async function handleInstallationEvent(payload: any) {
   const installationId = payload.installation.id;
 
   if (action === "created") {
+    console.log(payload);
     console.log(`GitHub App installed: Installation ID ${installationId}`);
     // Store installation information in your database
   } else if (action === "deleted") {

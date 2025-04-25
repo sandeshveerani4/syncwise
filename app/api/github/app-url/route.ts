@@ -27,7 +27,7 @@ export async function GET() {
     // This is a simplified example - in production, you should store this securely
 
     // Construct the GitHub App installation URL
-    const installUrl = `https://github.com/apps/SyncWiseHub/installations/new?state=${state}`;
+    const installUrl = `https://github.com/apps/SyncWiseHub/installations/new?state=${session.user.id}`;
 
     return NextResponse.json({ url: installUrl });
   } catch (error) {
