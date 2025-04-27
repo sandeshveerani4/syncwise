@@ -4,20 +4,15 @@ import { auth } from "@/lib/auth";
 import * as z from "zod";
 
 const githubSettingsSchema = z.object({
-  owner: z.string().min(1, {
-    message: "Owner is required",
-  }),
   repository: z.string().min(1, {
     message: "Repository is required",
   }),
-  repositoryId: z.string().min(1, {
-    message: "Repository ID is required",
-  }),
+  repositoryId: z.number({ required_error: "Repository Id is required" }),
 });
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -26,12 +21,10 @@ export async function PUT(
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const projectId = params.id;
+    const { id: projectId } = await params;
     const body = await req.json();
-    const { owner, repository, repositoryId } =
-      githubSettingsSchema.parse(body);
+    const { repository, repositoryId } = githubSettingsSchema.parse(body);
 
-    // Check if the project exists and belongs to the user
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
@@ -52,43 +45,10 @@ export async function PUT(
         id: projectId,
       },
       data: {
-        githubOwner: owner,
         githubRepo: repository,
+        additionalData: { githubRepoId: repositoryId },
       },
     });
-
-    // Update the GitHub API key with the new repository information
-    const githubApiKey = await prisma.apiKey.findFirst({
-      where: {
-        projectId,
-        service: "github",
-      },
-    });
-
-    if (githubApiKey) {
-      // Get the current additionalData
-      let additionalData = (githubApiKey.additionalData as any) || {};
-
-      // If additionalData is a string, parse it
-      if (typeof additionalData === "string") {
-        additionalData = JSON.parse(additionalData);
-      }
-
-      // Update the repository information
-      additionalData.owner = owner;
-      additionalData.repository = repository;
-      additionalData.repositoryId = repositoryId;
-
-      // Update the API key
-      await prisma.apiKey.update({
-        where: {
-          id: githubApiKey.id,
-        },
-        data: {
-          additionalData,
-        },
-      });
-    }
 
     return NextResponse.json({
       project: updatedProject,

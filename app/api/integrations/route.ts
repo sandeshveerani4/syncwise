@@ -6,7 +6,7 @@ import * as z from "zod";
 const integrationSchema = z.object({
   service: z.string(),
   key: z.string(),
-  additionalData: z.string().optional(),
+  additionalData: z.record(z.string(), z.string()).optional(),
 });
 
 export async function GET() {
@@ -38,7 +38,6 @@ export async function GET() {
       },
       select: {
         id: true,
-        name: true,
         service: true,
         createdAt: true,
       },
@@ -63,6 +62,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+
     const { service, key, additionalData } = integrationSchema.parse(body);
 
     // Get the user's current project
@@ -98,43 +98,31 @@ export async function POST(req: Request) {
         },
         data: {
           key,
+          additionalData,
         },
       });
 
       return NextResponse.json({
         integration: {
           id: updatedIntegration.id,
-          name: updatedIntegration.name,
           service: updatedIntegration.service,
         },
         message: "Integration updated successfully",
       });
     }
 
-    // Create new integration
-    const serviceName =
-      service === "github"
-        ? "GitHub"
-        : service === "slack"
-        ? "Slack"
-        : service === "jira"
-        ? "Jira"
-        : "Google Calendar";
-
     const integration = await prisma.apiKey.create({
       data: {
-        name: serviceName,
         key,
         service,
-        userId: session.user.id,
         projectId: project.id,
+        additionalData,
       },
     });
 
     return NextResponse.json({
       integration: {
         id: integration.id,
-        name: integration.name,
         service: integration.service,
       },
       message: "Integration added successfully",

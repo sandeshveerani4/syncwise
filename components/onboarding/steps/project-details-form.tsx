@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useEffect } from "react";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -45,10 +46,23 @@ export function ProjectDetailsForm({
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  useEffect(() => {
+    form.setValue("name", initialData.name);
+    form.setValue("description", initialData.description);
+  }, [initialData]);
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     onUpdate({
       name: values.name,
       description: values.description || "",
+    });
+    await fetch("/api/projects", {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: values.name,
+        description: values.description,
+      }),
+      method: "POST",
     });
     onNext();
   }

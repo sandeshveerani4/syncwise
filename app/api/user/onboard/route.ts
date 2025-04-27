@@ -10,7 +10,42 @@ export async function POST() {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // Update user to mark as onboarded
+    const project = await prisma.project.findFirst({
+      where: {
+        userId: session.user.id,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        apiKeys: {
+          select: {
+            id: true,
+            service: true,
+            additionalData: true,
+          },
+        },
+      },
+    });
+
+    if (!project) {
+      return NextResponse.json(
+        { message: "Project not connected" },
+        { status: 404 }
+      );
+    }
+
+    if (
+      !project.githubRepo ||
+      !project.apiKeys.find((x) => x.service === "jira") ||
+      !project.apiKeys.find((x) => x.service === "slack")
+    ) {
+      return NextResponse.json(
+        { message: "Services not connected properly!" },
+        { status: 404 }
+      );
+    }
+
     await prisma.user.update({
       where: {
         id: session.user.id,

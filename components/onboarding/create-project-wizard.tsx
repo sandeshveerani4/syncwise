@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProjectDetailsForm } from "@/components/onboarding/steps/project-details-form";
 import { GitHubIntegrationForm } from "@/components/onboarding/steps/github-integration-form";
@@ -8,31 +8,24 @@ import { JiraIntegrationForm } from "@/components/onboarding/steps/jira-integrat
 import { SlackIntegrationForm } from "@/components/onboarding/steps/slack-integration-form";
 import { ProjectSummary } from "@/components/onboarding/steps/project-summary";
 import { useToast } from "@/hooks/use-toast";
+import { useSession } from "next-auth/react";
 
 type Step = "details" | "github" | "jira" | "slack" | "summary";
 type ProjectData = {
+  id?: string;
   name: string;
   description: string;
   github: {
-    connected: boolean;
-    token: string;
-    repositories: string[];
-    owner: string;
     repository: string;
+    repositoryId?: number;
   };
   jira: {
-    connected: boolean;
     domain: string;
     token: string;
     email: string;
-    projects: string[];
   };
   slack: {
-    connected: boolean;
-    token: string;
-    workspace?: string;
-    channel?: string;
-    channels: string[];
+    isConnected: boolean;
   };
 };
 
@@ -40,34 +33,26 @@ export function CreateProjectWizard() {
   const router = useRouter();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<Step>("details");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [projectData, setProjectData] = useState<ProjectData>({
     name: "",
     description: "",
     github: {
-      connected: false,
-      token: "",
-      repositories: [],
-      owner: "",
       repository: "",
     },
     jira: {
-      connected: false,
       domain: "",
       token: "",
       email: "",
-      projects: [],
     },
     slack: {
-      connected: false,
-      token: "",
-      workspace: "",
-      channel: "",
-      channels: [],
+      isConnected: false,
     },
   });
 
-  const steps: Step[] = ["details", "github", "jira", "slack", "summary"];
+  const { update: updateSession } = useSession();
+
+  const steps: Step[] = ["details", "github", "slack", "jira", "summary"];
   const currentStepIndex = steps.indexOf(currentStep);
 
   const goToNextStep = () => {
@@ -92,19 +77,6 @@ export function CreateProjectWizard() {
     setIsLoading(true);
 
     try {
-      // Call the API to create the project
-      const response = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(projectData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create project");
-      }
-
-      // Mark user as onboarded
       const onboardResponse = await fetch("/api/user/onboard", {
         method: "POST",
       });
@@ -114,7 +86,7 @@ export function CreateProjectWizard() {
           "Failed to mark user as onboarded, but project was created"
         );
       }
-
+      await updateSession({ onboarded: true });
       toast({
         title: "Project Created!",
         description: "Your project has been created successfully.",
@@ -137,6 +109,62 @@ export function CreateProjectWizard() {
     }
   };
 
+  async function checkIfProjectCreated() {
+    try {
+      const res = await fetch("/api/projects/current");
+      if (res.ok) {
+        const body = await res.json();
+        const jira = body.project.apiKeys.find(
+          (x: any) => x.service === "jira"
+        );
+        setProjectData((d) => ({
+          ...d,
+          id: body.project.id,
+          name: body.project.name,
+          description: body.project.description,
+          github: {
+            repository: body.project.githubRepo,
+            repositoryId: body.project.additionalData.githubRepoId,
+          },
+          slack: {
+            isConnected:
+              body.project.apiKeys.filter((x: any) => x.service === "slack")
+                .length > 0,
+          },
+          ...(jira && {
+            jira: {
+              domain: jira.additionalData.domain,
+              email: jira.additionalData.email,
+              token: "Stored in DB",
+            },
+          }),
+        }));
+        if (body.project.githubRepo) {
+          if (
+            body.project.apiKeys.length > 0 &&
+            body.project.apiKeys.filter((x: any) => x.service === "slack")
+          ) {
+            if (jira) {
+              setCurrentStep(steps[steps.indexOf("jira") + 1]);
+            } else {
+              setCurrentStep(steps[steps.indexOf("slack") + 1]);
+            }
+          } else {
+            setCurrentStep(steps[steps.indexOf("github") + 1]);
+          }
+        } else {
+          goToNextStep();
+        }
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    checkIfProjectCreated();
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="relative">
@@ -158,47 +186,50 @@ export function CreateProjectWizard() {
         </ol>
       </div>
 
-      <div className="mt-8">
-        {currentStep === "details" && (
-          <ProjectDetailsForm
-            initialData={projectData}
-            onUpdate={updateProjectData}
-            onNext={goToNextStep}
-          />
-        )}
-        {currentStep === "github" && (
-          <GitHubIntegrationForm
-            initialData={projectData.github}
-            onUpdate={(github) => updateProjectData({ github })}
-            onNext={goToNextStep}
-            onBack={goToPreviousStep}
-          />
-        )}
-        {currentStep === "jira" && (
-          <JiraIntegrationForm
-            initialData={projectData.jira}
-            onUpdate={(jira) => updateProjectData({ jira })}
-            onNext={goToNextStep}
-            onBack={goToPreviousStep}
-          />
-        )}
-        {currentStep === "slack" && (
-          <SlackIntegrationForm
-            initialData={projectData.slack}
-            onUpdate={(slack) => updateProjectData({ slack })}
-            onNext={goToNextStep}
-            onBack={goToPreviousStep}
-          />
-        )}
-        {currentStep === "summary" && (
-          <ProjectSummary
-            projectData={projectData}
-            onBack={goToPreviousStep}
-            onSubmit={handleCreateProject}
-            isLoading={isLoading}
-          />
-        )}
-      </div>
+      {isLoading ? (
+        "Loading..."
+      ) : (
+        <div className="mt-8">
+          {currentStep === "details" && (
+            <ProjectDetailsForm
+              initialData={projectData}
+              onUpdate={updateProjectData}
+              onNext={goToNextStep}
+            />
+          )}
+          {currentStep === "github" && (
+            <GitHubIntegrationForm
+              initialData={{ ...projectData.github, projectId: projectData.id }}
+              onUpdate={(github) => updateProjectData({ github })}
+              onNext={goToNextStep}
+              onBack={goToPreviousStep}
+            />
+          )}
+          {currentStep === "jira" && (
+            <JiraIntegrationForm
+              initialData={projectData.jira}
+              onUpdate={(jira) => updateProjectData({ jira })}
+              onNext={goToNextStep}
+              onBack={goToPreviousStep}
+            />
+          )}
+          {currentStep === "slack" && (
+            <SlackIntegrationForm
+              initialData={projectData.slack}
+              onNext={goToNextStep}
+              onBack={goToPreviousStep}
+            />
+          )}
+          {currentStep === "summary" && (
+            <ProjectSummary
+              projectData={projectData}
+              onBack={goToPreviousStep}
+              onSubmit={handleCreateProject}
+              isLoading={isLoading}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

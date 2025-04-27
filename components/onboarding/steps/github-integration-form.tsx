@@ -16,7 +16,7 @@ import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Repository {
-  id: string;
+  id: number;
   name: string;
   full_name: string;
   owner: {
@@ -26,18 +26,13 @@ interface Repository {
 
 interface GitHubIntegrationFormProps {
   initialData: {
-    connected: boolean;
-    token: string;
-    repositories: string[];
-    owner: string;
     repository: string;
+    repositoryId?: number;
+    projectId?: string;
   };
   onUpdate: (data: {
-    connected: boolean;
-    token: string;
-    repositories: string[];
-    owner: string;
     repository: string;
+    repositoryId: number;
     installationId?: string;
   }) => void;
   onNext: () => void;
@@ -50,42 +45,53 @@ export function GitHubIntegrationForm({
   onNext,
   onBack,
 }: GitHubIntegrationFormProps) {
-  const router = useRouter();
   const { toast } = useToast();
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isConnected, setIsConnected] = useState(initialData.connected);
+  const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [repositories, setRepositories] = useState<Repository[]>([]);
-  const [selectedRepository, setSelectedRepository] = useState<string>(
-    initialData.repository || ""
-  );
-  const [installationId, setInstallationId] = useState<string>("");
-  const [accessToken, setAccessToken] = useState<string>("");
+  const [selectedRepository, setSelectedRepository] = useState<
+    number | undefined
+  >(initialData.repositoryId);
 
-  // Check if we're returning from GitHub OAuth flow
   useEffect(() => {
+    setIsLoading(true);
+    checkForInstallation();
+  }, []);
+  async function checkForInstallation() {
     const queryParams = new URLSearchParams(window.location.search);
     const installation_id = queryParams.get("installation_id");
-    const setup_action = queryParams.get("setup_action");
 
-    // Clean up URL
-    if (installation_id) {
-      window.history.replaceState({}, document.title, window.location.pathname);
+    try {
+      if (installation_id) {
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
+        await fetchRepositories(installation_id);
+      } else {
+        await checkProjectThenFetch();
+      }
+    } finally {
+      setIsLoading(false);
     }
+  }
 
-    // If we have an installation_id, we're returning from the GitHub App installation
-    if (installation_id) {
-      setInstallationId(installation_id);
-      fetchAccessToken(installation_id);
+  const checkProjectThenFetch = async () => {
+    const response = await fetch("/api/projects/current");
+    if (response.ok) {
+      const newIKey = (await response.json()).project.githubInstallationId;
+      if (newIKey) {
+        await fetchRepositories(newIKey);
+      }
     }
-  }, []);
+  };
 
-  // Fetch access token using the installation ID
-  const fetchAccessToken = async (installationId: string) => {
+  const fetchRepositories = async (installation_id: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `/api/github/token?installation_id=${installationId}`,
+      let response = await fetch(
+        `/api/github/repositories?installation_id=${installation_id}`,
         {
           method: "GET",
         }
@@ -96,40 +102,10 @@ export function GitHubIntegrationForm({
       }
 
       const data = await response.json();
-      setAccessToken(data.token);
-      setIsConnected(true);
-
-      // Fetch repositories after getting the token
-      fetchRepositories(data.token);
-    } catch (error) {
-      console.error("Error fetching access token:", error);
-      toast({
-        title: "Error",
-        description: "Failed to connect to GitHub. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Fetch repositories using the access token
-  const fetchRepositories = async (token: string) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/github/repositories", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch repositories");
+      if (data.repositories.length > 0) {
+        setRepositories(data.repositories);
+        setIsConnected(true);
       }
-
-      const data = await response.json();
-      setRepositories(data.repositories);
     } catch (error) {
       console.error("Error fetching repositories:", error);
       toast({
@@ -144,7 +120,7 @@ export function GitHubIntegrationForm({
 
   // Initiate GitHub App installation
   const initiateGitHubAppInstallation = async () => {
-    setIsConnecting(true);
+    setIsLoading(true);
     try {
       const response = await fetch("/api/github/app-url", {
         method: "GET",
@@ -165,16 +141,19 @@ export function GitHubIntegrationForm({
         description: "Failed to connect to GitHub. Please try again.",
         variant: "destructive",
       });
-      setIsConnecting(false);
+      setIsLoading(false);
     }
   };
 
   const handleRepositorySelect = (value: string) => {
-    setSelectedRepository(value);
+    setSelectedRepository(parseInt(value));
   };
 
-  function onSubmit() {
-    // Find the selected repository details
+  async function onSubmit() {
+    if (!initialData.projectId) {
+      return;
+    }
+
     const selectedRepo = repositories.find(
       (repo) => repo.id === selectedRepository
     );
@@ -188,13 +167,27 @@ export function GitHubIntegrationForm({
       return;
     }
 
+    const res = await fetch(`/api/projects/${initialData.projectId}/github`, {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        repository: selectedRepo.full_name,
+        repositoryId: selectedRepo.id,
+      }),
+      method: "PUT",
+    });
+
+    if (!res.ok) {
+      toast({
+        title: "Error",
+        description: "Something went wrong!",
+        variant: "destructive",
+      });
+      return;
+    }
+
     onUpdate({
-      connected: isConnected,
-      token: accessToken,
-      repositories: [selectedRepository], // We're only storing the selected repository ID
-      owner: selectedRepo.owner.login,
-      repository: selectedRepo.name,
-      installationId: installationId, // Store the installation ID for future API calls
+      repository: selectedRepo.full_name,
+      repositoryId: selectedRepo.id,
     });
     onNext();
   }
@@ -218,10 +211,10 @@ export function GitHubIntegrationForm({
 
           <Button
             onClick={initiateGitHubAppInstallation}
-            disabled={isConnecting}
+            disabled={isLoading}
             className="w-full sm:w-auto"
           >
-            {isConnecting ? (
+            {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Connecting...
@@ -277,14 +270,14 @@ export function GitHubIntegrationForm({
                 <CardContent className="p-4">
                   <Select
                     onValueChange={handleRepositorySelect}
-                    value={selectedRepository}
+                    value={selectedRepository?.toString()}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a repository" />
                     </SelectTrigger>
                     <SelectContent>
                       {repositories.map((repo) => (
-                        <SelectItem key={repo.id} value={repo.id}>
+                        <SelectItem key={repo.id} value={repo.id.toString()}>
                           {repo.full_name}
                         </SelectItem>
                       ))}

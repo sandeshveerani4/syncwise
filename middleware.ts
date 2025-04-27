@@ -18,16 +18,16 @@ export async function middleware(request: NextRequest) {
   const isOnboarded = token.onboarded as boolean;
 
   // If user is not onboarded and trying to access dashboard
-  /*   if (!isOnboarded && path.startsWith("/dashboard")) {
+  if (!isOnboarded && path.startsWith("/dashboard")) {
     const onboardingUrl = new URL("/onboarding", request.url);
     return NextResponse.redirect(onboardingUrl);
-  } */
+  }
 
   // If user is already onboarded and trying to access onboarding page
-  /*   if (isOnboarded && path === "/onboarding") {
+  if (isOnboarded && path === "/onboarding") {
     const dashboardUrl = new URL("/dashboard", request.url);
     return NextResponse.redirect(dashboardUrl);
-  } */
+  }
 
   return NextResponse.next();
 }

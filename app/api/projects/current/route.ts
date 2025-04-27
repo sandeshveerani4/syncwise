@@ -22,7 +22,6 @@ export async function GET() {
         apiKeys: {
           select: {
             id: true,
-            name: true,
             service: true,
             additionalData: true,
           },

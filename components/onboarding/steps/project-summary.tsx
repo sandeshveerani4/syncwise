@@ -15,16 +15,13 @@ interface ProjectSummaryProps {
     name: string;
     description: string;
     github: {
-      connected: boolean;
-      repositories: string[];
+      repository: string;
     };
     jira: {
-      connected: boolean;
-      projects: string[];
+      token: string;
     };
     slack: {
-      connected: boolean;
-      channels: string[];
+      isConnected: boolean;
     };
   };
   onBack: () => void;
@@ -68,7 +65,7 @@ export function ProjectSummary({
               <div className="flex items-center space-x-2">
                 <GitHubLogoIcon className="h-5 w-5" />
                 <span className="text-sm font-medium">GitHub</span>
-                {projectData.github.connected ? (
+                {projectData.github.repository ? (
                   <span className="ml-auto flex items-center text-sm text-green-600">
                     <CheckIcon className="mr-1 h-4 w-4" /> Connected
                   </span>
@@ -82,7 +79,7 @@ export function ProjectSummary({
               <div className="flex items-center space-x-2">
                 <MixIcon className="h-5 w-5" />
                 <span className="text-sm font-medium">Jira</span>
-                {projectData.jira.connected ? (
+                {projectData.jira.token ? (
                   <span className="ml-auto flex items-center text-sm text-green-600">
                     <CheckIcon className="mr-1 h-4 w-4" /> Connected
                   </span>
@@ -96,7 +93,7 @@ export function ProjectSummary({
               <div className="flex items-center space-x-2">
                 <ChatBubbleIcon className="h-5 w-5" />
                 <span className="text-sm font-medium">Slack</span>
-                {projectData.slack.connected ? (
+                {projectData.slack.isConnected ? (
                   <span className="ml-auto flex items-center text-sm text-green-600">
                     <CheckIcon className="mr-1 h-4 w-4" /> Connected
                   </span>
