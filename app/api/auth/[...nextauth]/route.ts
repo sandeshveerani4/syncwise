@@ -73,7 +73,7 @@ export const authOptions: NextAuthOptions = {
         token.onboarded = user.onboarded;
         token.projectId = user.projectId;
       }
-      console.log("triggered", trigger, session);
+
       if (trigger === "update" && session?.onboarded !== undefined) {
         token.onboarded = session.onboarded;
       }
