@@ -9,8 +9,9 @@ import { SlackIntegrationForm } from "@/components/onboarding/steps/slack-integr
 import { ProjectSummary } from "@/components/onboarding/steps/project-summary";
 import { useToast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
+import { CalendarIntegrationForm } from "./steps/calendar-integration-form";
 
-type Step = "details" | "github" | "jira" | "slack" | "summary";
+type Step = "details" | "github" | "jira" | "slack" | "summary" | "calendar";
 type ProjectData = {
   id?: string;
   name: string;
@@ -25,6 +26,9 @@ type ProjectData = {
     email: string;
   };
   slack: {
+    isConnected: boolean;
+  };
+  calendar: {
     isConnected: boolean;
   };
 };
@@ -48,11 +52,21 @@ export function CreateProjectWizard() {
     slack: {
       isConnected: false,
     },
+    calendar: {
+      isConnected: false,
+    },
   });
 
   const { update: updateSession } = useSession();
 
-  const steps: Step[] = ["details", "github", "slack", "jira", "summary"];
+  const steps: Step[] = [
+    "details",
+    "github",
+    "slack",
+    "calendar",
+    "jira",
+    "summary",
+  ];
   const currentStepIndex = steps.indexOf(currentStep);
 
   const goToNextStep = () => {
@@ -117,6 +131,9 @@ export function CreateProjectWizard() {
         const jira = body.project.apiKeys.find(
           (x: any) => x.service === "jira"
         );
+        const calendar = body.project.apiKeys.find(
+          (x: any) => x.service === "calendar"
+        );
         setProjectData((d) => ({
           ...d,
           id: body.project.id,
@@ -124,7 +141,7 @@ export function CreateProjectWizard() {
           description: body.project.description,
           github: {
             repository: body.project.githubRepo,
-            repositoryId: body.project.additionalData.githubRepoId,
+            repositoryId: body.project.additionalData?.githubRepoId ?? "",
           },
           slack: {
             isConnected:
@@ -136,6 +153,11 @@ export function CreateProjectWizard() {
               domain: jira.additionalData.domain,
               email: jira.additionalData.email,
               token: "Stored in DB",
+            },
+          }),
+          ...(calendar && {
+            calendar: {
+              isConnected: true,
             },
           }),
         }));
@@ -201,6 +223,14 @@ export function CreateProjectWizard() {
             <GitHubIntegrationForm
               initialData={{ ...projectData.github, projectId: projectData.id }}
               onUpdate={(github) => updateProjectData({ github })}
+              onNext={goToNextStep}
+              onBack={goToPreviousStep}
+            />
+          )}
+          {currentStep === "calendar" && (
+            <CalendarIntegrationForm
+              initialData={projectData.calendar}
+              onUpdate={(calendar) => updateProjectData({ calendar })}
               onNext={goToNextStep}
               onBack={goToPreviousStep}
             />

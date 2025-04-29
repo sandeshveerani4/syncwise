@@ -6,14 +6,12 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   DashboardIcon,
-  GitHubLogoIcon,
-  ChatBubbleIcon,
-  MixIcon,
-  CalendarIcon,
   GearIcon,
   ExitIcon,
   RocketIcon,
 } from "@radix-ui/react-icons";
+import { Video } from "lucide-react";
+
 import { signOut } from "next-auth/react";
 
 export function DashboardNav() {
@@ -27,40 +25,19 @@ export function DashboardNav() {
       exact: true,
     },
     {
-      href: "/dashboard/github",
-      label: "GitHub",
-      icon: GitHubLogoIcon,
-    },
-    {
-      href: "/dashboard/slack",
-      label: "Slack",
-      icon: ChatBubbleIcon,
-    },
-    {
-      href: "/dashboard/jira",
-      label: "Jira",
-      icon: MixIcon,
-    },
-    {
-      href: "/dashboard/calendar",
-      label: "Calendar",
-      icon: CalendarIcon,
-    },
-    {
       href: "/dashboard/ai",
       label: "AI Assistant",
       icon: RocketIcon,
     },
     {
+      href: "/dashboard/meetings",
+      label: "Meetings",
+      icon: Video,
+    },
+    {
       href: "/dashboard/settings",
       label: "Settings",
       icon: GearIcon,
-    },
-    {
-      href: "/dashboard/settings/github",
-      label: "GitHub Settings",
-      icon: GitHubLogoIcon,
-      parent: "/dashboard/settings", // This indicates it's a child of the Settings page
     },
   ];
 

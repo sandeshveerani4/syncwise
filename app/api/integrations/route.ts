@@ -43,7 +43,7 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ integrations });
+    return NextResponse.json({ integrations, project });
   } catch (error) {
     console.error("Error fetching integrations:", error);
     return NextResponse.json(

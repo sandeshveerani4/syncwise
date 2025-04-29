@@ -4,6 +4,8 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { DashboardTabs } from "@/components/dashboard/dashboard-tabs";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { Card, CardContent } from "@/components/ui/card";
+import { CreateMeetingButton } from "@/components/meetings/create-meeting-button";
 
 export const metadata: Metadata = {
   title: "Dashboard | SyncWise AI",
@@ -18,11 +20,14 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <DashboardHeader
-        heading="Dashboard"
-        text="Manage your integrations and workflow."
-      />
+        heading={`Welcome, ${session.user.name || "there"}!`}
+        text="Manage your integrations and workflow with SyncWise AI."
+      >
+        <CreateMeetingButton />
+      </DashboardHeader>
+
       <DashboardTabs />
     </div>
   );

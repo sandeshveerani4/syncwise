@@ -224,6 +224,7 @@ export function IntegrationSettings() {
           setIntegrations((prev) => ({
             ...prev,
             ...connectedServices,
+            github: !!data.project.githubRepo,
           }));
         }
       } catch (error) {

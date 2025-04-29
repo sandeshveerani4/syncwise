@@ -18,16 +18,9 @@ import { MixIcon } from "@radix-ui/react-icons";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
-  domain: z.string().min(1, {
-    message: "Jira domain is required.",
-  }),
-  token: z.string().min(1, {
-    message: "Jira API token is required.",
-  }),
-  email: z.string().email({
-    message: "Valid email is required.",
-  }),
-  projects: z.array(z.string()).optional(),
+  domain: z.string().optional(),
+  token: z.string().optional(),
+  email: z.string().optional(),
 });
 
 interface JiraIntegrationFormProps {
@@ -59,31 +52,34 @@ export function JiraIntegrationForm({
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.token !== "Stored in DB") {
-      const res = await fetch("/api/integrations", {
-        headers: { "Content-Type": "application/json" },
-        method: "POST",
-        body: JSON.stringify({
-          service: "jira",
-          key: values.token,
-          additionalData: { domain: values.domain, email: values.email },
-        }),
-      });
-      if (!res.ok) {
-        toast({
-          title: "Error",
-          description: "Something went wrong!",
-          variant: "destructive",
+    if (values.token && values.email && values.domain) {
+      if (values.token !== "Stored in DB") {
+        const res = await fetch("/api/integrations", {
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+          body: JSON.stringify({
+            service: "jira",
+            key: values.token,
+            additionalData: { domain: values.domain, email: values.email },
+          }),
         });
-        return;
+        if (!res.ok) {
+          toast({
+            title: "Error",
+            description: "Something went wrong!",
+            variant: "destructive",
+          });
+          return;
+        }
       }
+
+      onUpdate({
+        domain: values.domain,
+        token: values.token,
+        email: values.email,
+      });
     }
 
-    onUpdate({
-      domain: values.domain,
-      token: values.token,
-      email: values.email,
-    });
     onNext();
   }
 

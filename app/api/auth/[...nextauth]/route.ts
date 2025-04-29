@@ -74,8 +74,19 @@ export const authOptions: NextAuthOptions = {
         token.projectId = user.projectId;
       }
 
-      if (trigger === "update" && session?.onboarded !== undefined) {
-        token.onboarded = session.onboarded;
+      if (trigger === "update") {
+        if (session?.onboarded !== undefined) {
+          token.onboarded = session.onboarded;
+        }
+        if (session?.projectId !== undefined) {
+          token.projectId = session.projectId;
+        }
+        if (session?.name !== undefined) {
+          token.name = session.name;
+        }
+        if (session?.email !== undefined) {
+          token.email = session.email;
+        }
       }
       return token;
     },

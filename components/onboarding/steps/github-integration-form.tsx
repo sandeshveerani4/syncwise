@@ -14,6 +14,8 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 interface Repository {
   id: number;
@@ -45,6 +47,7 @@ export function GitHubIntegrationForm({
   onNext,
   onBack,
 }: GitHubIntegrationFormProps) {
+  const router = useRouter();
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,6 +55,7 @@ export function GitHubIntegrationForm({
   const [selectedRepository, setSelectedRepository] = useState<
     number | undefined
   >(initialData.repositoryId);
+  const session = useSession();
 
   useEffect(() => {
     setIsLoading(true);
@@ -118,77 +122,53 @@ export function GitHubIntegrationForm({
     }
   };
 
-  // Initiate GitHub App installation
-  const initiateGitHubAppInstallation = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/github/app-url", {
-        method: "GET",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to get GitHub App installation URL");
-      }
-
-      const data = await response.json();
-
-      // Redirect to GitHub for app installation
-      window.location.href = data.url;
-    } catch (error) {
-      console.error("Failed to initiate GitHub App installation", error);
-      toast({
-        title: "Error",
-        description: "Failed to connect to GitHub. Please try again.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-    }
-  };
-
   const handleRepositorySelect = (value: string) => {
     setSelectedRepository(parseInt(value));
   };
 
   async function onSubmit() {
-    if (!initialData.projectId) {
-      return;
-    }
+    if (isConnected && selectedRepository) {
+      if (!initialData.projectId) {
+        return;
+      }
 
-    const selectedRepo = repositories.find(
-      (repo) => repo.id === selectedRepository
-    );
+      const selectedRepo = repositories.find(
+        (repo) => repo.id === selectedRepository
+      );
 
-    if (!selectedRepo) {
-      toast({
-        title: "Error",
-        description: "Please select a repository to continue.",
-        variant: "destructive",
+      if (!selectedRepo) {
+        toast({
+          title: "Error",
+          description: "Please select a repository to continue.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const res = await fetch(`/api/projects/${initialData.projectId}/github`, {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          repository: selectedRepo.full_name,
+          repositoryId: selectedRepo.id,
+        }),
+        method: "PUT",
       });
-      return;
-    }
 
-    const res = await fetch(`/api/projects/${initialData.projectId}/github`, {
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      if (!res.ok) {
+        toast({
+          title: "Error",
+          description: "Something went wrong!",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      onUpdate({
         repository: selectedRepo.full_name,
         repositoryId: selectedRepo.id,
-      }),
-      method: "PUT",
-    });
-
-    if (!res.ok) {
-      toast({
-        title: "Error",
-        description: "Something went wrong!",
-        variant: "destructive",
       });
-      return;
     }
 
-    onUpdate({
-      repository: selectedRepo.full_name,
-      repositoryId: selectedRepo.id,
-    });
     onNext();
   }
 
@@ -209,23 +189,25 @@ export function GitHubIntegrationForm({
             </p>
           </div>
 
-          <Button
-            onClick={initiateGitHubAppInstallation}
-            disabled={isLoading}
-            className="w-full sm:w-auto"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Connecting...
-              </>
-            ) : (
-              <>
-                <GitHubLogoIcon className="mr-2 h-4 w-4" />
-                Install GitHub App
-              </>
-            )}
-          </Button>
+          {session.data?.user.id && (
+            <Button asChild disabled={isLoading} className="w-full sm:w-auto">
+              <Link
+                href={`https://github.com/apps/SyncWiseHub/installations/new?state=${session.data.user.id}`}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <GitHubLogoIcon className="mr-2 h-4 w-4" />
+                    Install GitHub App
+                  </>
+                )}
+              </Link>
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -315,7 +297,7 @@ export function GitHubIntegrationForm({
         </Button>
         <Button
           onClick={onSubmit}
-          disabled={!isConnected || !selectedRepository}
+          disabled={isConnected && !selectedRepository}
         >
           Continue
         </Button>

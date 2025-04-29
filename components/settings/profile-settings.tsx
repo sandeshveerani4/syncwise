@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -23,9 +23,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, {
@@ -34,7 +34,6 @@ const profileFormSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address.",
   }),
-  bio: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -59,15 +58,15 @@ type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
 export function ProfileSettings() {
   const { toast } = useToast();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
-
+  const session = useSession();
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: "John Doe",
-      email: "john.doe@example.com",
-      bio: "Software engineer and project manager.",
+      name: "",
+      email: "",
     },
   });
 
@@ -80,21 +79,64 @@ export function ProfileSettings() {
     },
   });
 
+  useEffect(() => {
+    async function fetchUserProfile() {
+      try {
+        const response = await fetch("/api/user/profile");
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data.user) {
+            form.reset({
+              name: data.user.name || "",
+              email: data.user.email || "",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch user profile:", error);
+      }
+    }
+
+    fetchUserProfile();
+  }, [form]);
+
   async function onSubmit(data: ProfileFormValues) {
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to update profile");
+      }
+
+      await session.update({ name: data.name, email: data.email });
 
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
       });
+
+      router.refresh();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update profile. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to update profile. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -106,8 +148,21 @@ export function ProfileSettings() {
     setIsPasswordLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch("/api/user/password/update", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to update password");
+      }
 
       toast({
         title: "Password updated",
@@ -122,7 +177,10 @@ export function ProfileSettings() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update password. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to update password. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -134,26 +192,12 @@ export function ProfileSettings() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>Manage your personal information.</CardDescription>
+          <CardTitle>Profile Information</CardTitle>
+          <CardDescription>Update your personal information.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-4 mb-6">
-            <Avatar className="h-16 w-16">
-              <AvatarImage
-                src="/placeholder.svg?height=64&width=64"
-                alt="Profile"
-              />
-              <AvatarFallback>JD</AvatarFallback>
-            </Avatar>
-            <div>
-              <Button variant="outline" size="sm">
-                Change Avatar
-              </Button>
-            </div>
-          </div>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardContent className="space-y-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -186,34 +230,22 @@ export function ProfileSettings() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="bio"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bio</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      A brief description about yourself.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            </CardContent>
+            <CardFooter>
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? "Saving..." : "Save Changes"}
               </Button>
-            </form>
-          </Form>
-        </CardContent>
+            </CardFooter>
+          </form>
+        </Form>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Password</CardTitle>
-          <CardDescription>Change your password.</CardDescription>
+          <CardTitle>Change Password</CardTitle>
+          <CardDescription>
+            Update your password to keep your account secure.
+          </CardDescription>
         </CardHeader>
         <Form {...passwordForm}>
           <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}>

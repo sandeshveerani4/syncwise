@@ -8,6 +8,7 @@ import {
   MixIcon,
   CheckIcon,
   CrossCircledIcon,
+  CalendarIcon,
 } from "@radix-ui/react-icons";
 
 interface ProjectSummaryProps {
@@ -21,6 +22,9 @@ interface ProjectSummaryProps {
       token: string;
     };
     slack: {
+      isConnected: boolean;
+    };
+    calendar: {
       isConnected: boolean;
     };
   };
@@ -94,6 +98,19 @@ export function ProjectSummary({
                 <ChatBubbleIcon className="h-5 w-5" />
                 <span className="text-sm font-medium">Slack</span>
                 {projectData.slack.isConnected ? (
+                  <span className="ml-auto flex items-center text-sm text-green-600">
+                    <CheckIcon className="mr-1 h-4 w-4" /> Connected
+                  </span>
+                ) : (
+                  <span className="ml-auto flex items-center text-sm text-muted-foreground">
+                    <CrossCircledIcon className="mr-1 h-4 w-4" /> Not connected
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <CalendarIcon className="h-5 w-5" />
+                <span className="text-sm font-medium">Google Calendar</span>
+                {projectData.calendar.isConnected ? (
                   <span className="ml-auto flex items-center text-sm text-green-600">
                     <CheckIcon className="mr-1 h-4 w-4" /> Connected
                   </span>

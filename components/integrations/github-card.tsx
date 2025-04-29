@@ -1,40 +1,35 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { GitHubLogoIcon } from "@radix-ui/react-icons"
+import { Card } from "@/components/ui/card";
+import { GitHubLogoIcon } from "@radix-ui/react-icons";
+import Link from "next/link";
 
 export function GitHubCard() {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center gap-4">
-        <GitHubLogoIcon className="h-8 w-8" />
-        <div>
-          <CardTitle>GitHub</CardTitle>
-          <CardDescription>Connected</CardDescription>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="space-y-2">
+    <Link href="https://github.com" target="_blank" className="block group">
+      <Card className="overflow-hidden border-none shadow-md transition-all duration-300 hover:shadow-xl hover:scale-[1.02] h-full">
+        <div className="bg-gradient-to-br from-blue-500 to-indigo-700 p-6 h-full">
+          <div className="flex flex-col space-y-4 h-full">
             <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">Open Pull Requests</div>
-              <div className="text-sm font-medium">3</div>
+              <div className="flex items-center space-x-2">
+                <div className="rounded-full bg-white/20 p-2">
+                  <GitHubLogoIcon className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white">GitHub</h3>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">Open Issues</div>
-              <div className="text-sm font-medium">8</div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">Recent Commits</div>
-              <div className="text-sm font-medium">12</div>
+
+            <p className="text-sm text-white/90 flex-grow">
+              Track repositories, issues, and pull requests from your GitHub
+              projects.
+            </p>
+
+            <div className="flex items-center mt-2">
+              <div className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white group-hover:bg-white/30 transition-colors">
+                View Details
+              </div>
             </div>
           </div>
         </div>
-      </CardContent>
-      <CardFooter>
-        <Button variant="outline" className="w-full">
-          View Details
-        </Button>
-      </CardFooter>
-    </Card>
-  )
+      </Card>
+    </Link>
+  );
 }

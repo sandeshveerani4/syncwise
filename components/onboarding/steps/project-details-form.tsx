@@ -16,6 +16,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { useSession } from "next-auth/react";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -38,6 +40,9 @@ export function ProjectDetailsForm({
   onUpdate,
   onNext,
 }: ProjectDetailsFormProps) {
+  const { toast } = useToast();
+  const { update: updateSession } = useSession();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -56,7 +61,7 @@ export function ProjectDetailsForm({
       name: values.name,
       description: values.description || "",
     });
-    await fetch("/api/projects", {
+    const res = await fetch("/api/projects", {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: values.name,
@@ -64,6 +69,16 @@ export function ProjectDetailsForm({
       }),
       method: "POST",
     });
+    if (!res.ok) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch repositories. Please try again.",
+        variant: "destructive",
+      });
+    }
+    const { project } = await res.json();
+    await updateSession({ projectId: project.id });
+
     onNext();
   }
 

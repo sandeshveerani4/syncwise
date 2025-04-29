@@ -20,21 +20,58 @@ export async function POST(req: Request) {
 
     const validatedData = projectSchema.parse(body);
 
-    const project = await prisma.project.create({
-      data: {
-        name: validatedData.name,
-        description: validatedData.description || "",
+    let project = await prisma.project.findFirst({
+      where: {
         userId: session.user.id,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        apiKeys: {
+          select: {
+            id: true,
+            service: true,
+            additionalData: true,
+          },
+        },
       },
     });
 
-    await prisma.user.update({
-      data: { project: { connect: { id: project.id } } },
-      where: { id: session.user.id },
-    });
+    if (!project) {
+      project = await prisma.project.create({
+        data: {
+          name: validatedData.name,
+          description: validatedData.description || "",
+          userId: session.user.id,
+        },
+        include: {
+          apiKeys: {
+            select: {
+              id: true,
+              service: true,
+              additionalData: true,
+            },
+          },
+        },
+      });
+
+      await prisma.user.update({
+        data: { project: { connect: { id: project.id } } },
+        where: { id: session.user.id },
+      });
+    } else {
+      await prisma.project.update({
+        where: { id: project.id },
+        data: {
+          name: validatedData.name,
+          description: validatedData.description,
+        },
+      });
+    }
 
     return NextResponse.json(
-      { project, message: "Project created successfully" },
+      { project, message: "Project created/updated successfully" },
       { status: 201 }
     );
   } catch (error) {
@@ -46,33 +83,6 @@ export async function POST(req: Request) {
     }
 
     console.error("Error creating project:", error);
-    return NextResponse.json(
-      { message: "Something went wrong" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET() {
-  try {
-    const session = await auth();
-
-    if (!session || !session.user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
-    const projects = await prisma.project.findMany({
-      where: {
-        userId: session.user.id,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-
-    return NextResponse.json({ projects });
-  } catch (error) {
-    console.error("Error fetching projects:", error);
     return NextResponse.json(
       { message: "Something went wrong" },
       { status: 500 }

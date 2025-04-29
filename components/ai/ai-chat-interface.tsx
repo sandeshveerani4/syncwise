@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AiMessage } from "@/components/ai/ai-message";
-import { SendIcon, Mic, PlusIcon, SettingsIcon, Loader2 } from "lucide-react";
+import { SendIcon, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useSession } from "next-auth/react";
 
 type MessageType = {
   id: string;
@@ -25,14 +26,36 @@ export function AiChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const session = useSession();
+  const [chatId, setChatId] = useState<string>();
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, response]);
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
+    if (!session.data?.user) return;
+    setIsLoading(true);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+
+    let cid = chatId;
+
+    if (!cid && messages.length === 0) {
+      const res = await fetch("/api/ai", { method: "POST" });
+      if (!res.ok) {
+        toast({
+          title: "Error",
+          description: "Error while creating a new chat!",
+          variant: "destructive",
+        });
+        return;
+      }
+      const { chatToken } = await res.json();
+      cid = chatToken.sessionToken;
+      setChatId(cid);
+    }
 
     const userMessage: MessageType = {
       id: Date.now().toString(),
@@ -43,7 +66,9 @@ export function AiChatInterface() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
 
-    const ws = new WebSocket("ws://localhost:8000/ws/124");
+    const ws = new WebSocket(
+      `ws://${process.env.BACKEND_URL}/ws/${session.data.user.id}/${cid}`
+    );
     ws.onmessage = function (event) {
       const data = JSON.parse(event.data);
       if (data[0].kwargs.content !== undefined) {
@@ -58,6 +83,11 @@ export function AiChatInterface() {
       }
     };
     ws.onerror = function () {
+      toast({
+        title: "Error",
+        description: "Something went wrong!",
+        variant: "destructive",
+      });
       setIsLoading(false);
       setTool(undefined);
     };
@@ -66,7 +96,6 @@ export function AiChatInterface() {
       setTool(undefined);
     };
     ws.onopen = function () {
-      setIsLoading(true);
       ws.send(input);
     };
   };
@@ -88,90 +117,46 @@ export function AiChatInterface() {
 
   return (
     <div className="flex h-[calc(100vh-12rem)] flex-col">
-      <Tabs defaultValue="chat" className="flex-1 overflow-auto">
-        <div className="flex items-center justify-between mb-4">
-          <TabsList>
-            <TabsTrigger value="chat">Chat</TabsTrigger>
-            <TabsTrigger value="tasks">Tasks</TabsTrigger>
-            <TabsTrigger value="insights">Insights</TabsTrigger>
-          </TabsList>
+      <Card className="flex-1 overflow-auto flex flex-col">
+        <ScrollArea className="flex-1 p-4">
+          <div className="space-y-4">
+            {messages.map((message) => (
+              <AiMessage key={message.id} message={message} />
+            ))}
+            {isLoading && response && (
+              <AiMessage key="final" message={response} />
+            )}
+            {isLoading && (
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            )}
+            {isLoading && tool && (
+              <div className="text-sm text-neutral-500">{tool}</div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
+        <div className="p-4 border-t">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon">
-              <PlusIcon className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon">
-              <SettingsIcon className="h-4 w-4" />
+            <Input
+              autoFocus
+              ref={inputRef}
+              placeholder="Type your message..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isLoading}
+              className="flex-1"
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={isLoading || !input.trim()}
+            >
+              <SendIcon className="h-4 w-4 mr-2" />
+              Send
             </Button>
           </div>
         </div>
-
-        <TabsContent
-          value="chat"
-          className="flex-1 overflow-auto flex flex-col mt-0"
-        >
-          <Card className="flex-1 overflow-auto flex flex-col">
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
-                {messages.map((message) => (
-                  <AiMessage key={message.id} message={message} />
-                ))}
-                {isLoading && response && (
-                  <AiMessage key="final" message={response} />
-                )}
-                {isLoading && (
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                )}
-                {isLoading && tool && <div className="text-sm">{tool}</div>}
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
-            <div className="p-4 border-t">
-              <div className="flex items-center gap-2">
-                <Input
-                  autoFocus
-                  ref={inputRef}
-                  placeholder="Type your message..."
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  disabled={isLoading}
-                  className="flex-1"
-                />
-                {/* <Button variant="outline" size="icon" disabled={isLoading}>
-                  <Mic className="h-4 w-4" />
-                </Button> */}
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={isLoading || !input.trim()}
-                >
-                  <SendIcon className="h-4 w-4 mr-2" />
-                  Send
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="tasks" className="flex-1 overflow-hidden mt-0">
-          <Card className="h-full p-6">
-            <h3 className="text-lg font-medium mb-4">AI-Generated Tasks</h3>
-            <p className="text-muted-foreground">
-              Tasks generated from your conversations will appear here. Start
-              chatting with the AI to create tasks.
-            </p>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="insights" className="flex-1 overflow-hidden mt-0">
-          <Card className="h-full p-6">
-            <h3 className="text-lg font-medium mb-4">AI Insights</h3>
-            <p className="text-muted-foreground">
-              The AI will analyze your workflow and provide insights to help you
-              improve productivity.
-            </p>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      </Card>
     </div>
   );
 }

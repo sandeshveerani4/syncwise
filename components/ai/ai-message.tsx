@@ -19,19 +19,6 @@ export function AiMessage({ message }: MessageProps) {
         isUser ? "flex-row-reverse" : "flex-row"
       )}
     >
-      {/* <Avatar className="h-8 w-8">
-         {isUser ? (
-          <>
-            <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
-            <AvatarFallback>U</AvatarFallback>
-          </>
-        ) : (
-          <>
-            <AvatarImage src="/placeholder.svg?height=32&width=32" alt="AI" />
-            <AvatarFallback>AI</AvatarFallback>
-          </>
-        )}
-      </Avatar> */}
       <div
         className={cn(
           "flex max-w-[80%] flex-col gap-1",
@@ -46,7 +33,6 @@ export function AiMessage({ message }: MessageProps) {
         >
           <Markdown>{message.content}</Markdown>
         </div>
-        {/* <span className="text-xs text-muted-foreground">{time}</span> */}
       </div>
     </div>
   );

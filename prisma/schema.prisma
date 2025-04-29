@@ -8,19 +8,21 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String      @id @default(cuid())
   name          String?
-  email         String    @unique
+  email         String      @unique
   password      String
   emailVerified DateTime?
   image         String?
-  onboarded     Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  onboarded     Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
   accounts      Account[]
   sessions      Session[]
-  project       Project?  @relation(fields: [projectId], references: [id])
+  project       Project?    @relation(fields: [projectId], references: [id])
   projectId     String?
+  chattoken     ChatToken[]
+  meetings      Meeting[]
 }
 
 model Account {
@@ -41,6 +43,13 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
+model ChatToken {
+  id           String @id @default(cuid())
+  sessionToken String @unique @default(uuid())
+  userId       String
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
@@ -50,17 +59,18 @@ model Session {
 }
 
 model Project {
-  id                   String   @id @default(cuid())
+  id                   String    @id @default(cuid())
   name                 String
   description          String?
   userId               String
   githubInstallationId Int?
   githubRepo           String?
   additionalData       Json?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
   apiKeys              ApiKey[]
   User                 User[]
+  meetings             Meeting[]
 }
 
 model ApiKey {
@@ -72,4 +82,18 @@ model ApiKey {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   project        Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+}
+
+model Meeting {
+  id            String    @id @default(cuid())
+  name          String?
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  meeting_id    String
+  tasks         Json[]    @default([])
+  attendees     String[]  @default([])
+  creation_date DateTime  @default(now())
+  end_date      DateTime?
 }
