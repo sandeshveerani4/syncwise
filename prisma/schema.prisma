@@ -92,7 +92,7 @@ model Meeting {
   projectId     String
   project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   meeting_id    String
-  tasks         Json[]    @default([])
+  tasks         Json      @default("{}")
   attendees     String[]  @default([])
   creation_date DateTime  @default(now())
   end_date      DateTime?

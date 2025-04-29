@@ -6,19 +6,32 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CalendarIcon, Users, ExternalLink, Video } from "lucide-react";
+import {
+  CalendarIcon,
+  Users,
+  ExternalLink,
+  Video,
+  CheckSquare,
+} from "lucide-react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { CreateMeetingButton } from "@/components/meetings/create-meeting-button";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Meetings | SyncWise AI",
   description: "Manage your meetings and video conferences",
 };
+interface Task {
+  id: string;
+  key: string;
+  self: string;
+}
 
 export default async function MeetingsPage() {
   const session = await auth();
@@ -62,65 +75,127 @@ export default async function MeetingsPage() {
             </CardContent>
           </Card>
         ) : (
-          meetings.map((meeting) => (
-            <Card key={meeting.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>{meeting.name}</CardTitle>
-                  <Button variant="outline" size="sm" asChild>
-                    <a
-                      href={meeting.meeting_id}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Join Meeting
-                    </a>
-                  </Button>
-                </div>
-                <CardDescription>
-                  Meeting ID: {meeting.meeting_id}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="flex items-center">
-                    <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      Created: {format(new Date(meeting.creation_date), "PPP")}
-                    </span>
+          meetings.map((meeting) => {
+            // Parse tasks and bot_data
+            const tasks = meeting.tasks as unknown as Task[];
+            const botData: any = meeting.bot_data;
+            const hasTasks = Array.isArray(tasks) && tasks.length > 0;
+            const hasBotState = botData && botData.state;
+
+            return (
+              <Card key={meeting.id}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>{meeting.name}</CardTitle>
+                    {meeting.meeting_id && (
+                      <Button variant="outline" size="sm" asChild>
+                        <a
+                          href={meeting.meeting_id}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Join Meeting
+                        </a>
+                      </Button>
+                    )}
                   </div>
-                  {meeting.end_date && (
+                  <CardDescription>
+                    Meeting ID: {meeting.meeting_id}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2">
                     <div className="flex items-center">
                       <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        End: {format(new Date(meeting.end_date), "PPP")}
+                        Created:{" "}
+                        {format(new Date(meeting.creation_date), "PPP")}
                       </span>
                     </div>
+                    {meeting.end_date && (
+                      <div className="flex items-center">
+                        <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          End: {format(new Date(meeting.end_date), "PPP")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bot State */}
+                  {hasBotState && (
+                    <div className="flex gap-2 mt-4 p-3 bg-muted rounded-md">
+                      <div className="flex items-center mb-2">
+                        <Video className="mr-2 h-4 w-4 text-primary" />
+                        <p className="text-sm font-medium">Bot State:</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {botData.state}
+                      </p>
+                    </div>
                   )}
-                </div>
-                <div className="mt-4">
-                  <div className="flex items-start">
-                    <Users className="mr-2 h-4 w-4 text-muted-foreground mt-1" />
-                    <div>
-                      <p className="text-sm font-medium mb-1">Attendees:</p>
-                      <div className="text-sm text-muted-foreground">
-                        {meeting.attendees.length > 0 ? (
-                          <ul className="list-disc pl-5">
-                            {meeting.attendees.map((attendee, index) => (
-                              <li key={index}>{attendee}</li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p>No attendees</p>
-                        )}
+
+                  {/* Tasks */}
+                  {hasTasks && (
+                    <div className="mt-4">
+                      <div className="flex items-start">
+                        <CheckSquare className="mr-2 h-4 w-4 text-muted-foreground mt-1" />
+                        <div>
+                          <p className="text-sm font-medium mb-1">Tasks:</p>
+                          <div className="text-sm">
+                            <ul className="list-disc pl-5 space-y-1">
+                              {tasks.map((task: Task, index: number) => {
+                                try {
+                                  const domain = new URL(task.self);
+                                  return (
+                                    <li key={index}>
+                                      <Link
+                                        href={
+                                          domain.origin + `/browse/${task.key}`
+                                        }
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-primary hover:underline"
+                                      >
+                                        {task.key}
+                                      </Link>
+                                    </li>
+                                  );
+                                } catch (e) {
+                                  console.error("Error rendering task:", e);
+                                  return null;
+                                }
+                              })}
+                            </ul>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                  )}
+
+                  {/* Attendees */}
+                  {meeting.attendees && meeting.attendees.length > 0 && (
+                    <div className="mt-4">
+                      <div className="flex items-start">
+                        <Users className="mr-2 h-4 w-4 text-muted-foreground mt-1" />
+                        <div>
+                          <p className="text-sm font-medium mb-1">Attendees:</p>
+                          <div className="text-sm text-muted-foreground">
+                            <ul className="list-disc pl-5">
+                              {meeting.attendees.map((attendee, index) => (
+                                <li key={index}>{attendee}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
     </div>

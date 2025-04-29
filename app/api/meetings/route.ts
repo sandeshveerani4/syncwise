@@ -19,12 +19,43 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { name, meeting_id } = meetingSchema.parse(body);
 
+    const res = await fetch("https://app.attendee.dev/api/v1/bots", {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${process.env.ATTENDEE_APIKEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        meeting_url: meeting_id,
+        bot_name: `SyncWise Bot - ${name}`,
+      }),
+    });
+
+    if (!res.ok) {
+      return NextResponse.json(
+        { message: "Something went wrong while joining the meeting" },
+        { status: 500 }
+      );
+    }
+    const bot = await res.json();
+
+    if (!bot.id) {
+      return NextResponse.json(
+        { message: "Something went wrong while joining the meeting" },
+        { status: 500 }
+      );
+    }
+
     const meeting = await prisma.meeting.create({
       data: {
         name,
         userId: session.user.id,
         projectId: session.user.projectId,
         meeting_id,
+        bot_id: bot.id,
+        bot_data: {
+          state: bot.state,
+        },
       },
     });
 
