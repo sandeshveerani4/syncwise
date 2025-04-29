@@ -125,9 +125,7 @@ export function CalendarIntegrationForm({
         <Button variant="outline" onClick={onBack}>
           Back
         </Button>
-        <Button onClick={handleContinue} disabled={!isConnected}>
-          Continue
-        </Button>
+        <Button onClick={handleContinue}>Continue</Button>
       </div>
     </div>
   );
