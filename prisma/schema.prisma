@@ -96,4 +96,6 @@ model Meeting {
   attendees     String[]  @default([])
   creation_date DateTime  @default(now())
   end_date      DateTime?
+  bot_id        String?
+  bot_data      Json      @default("{}")
 }
