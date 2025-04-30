@@ -325,14 +325,14 @@ export function IntegrationSettings() {
     try {
       const response = await fetch(`/api/user/unboard`, { method: "POST" });
       if (!response.ok) {
-        throw new Error("Failed to disconnect integration");
+        throw new Error("Failed to unboard");
       }
       await update({ onboarded: false });
       router.refresh();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to disconnect integration. Please try again.",
+        description: "Failed to unboard. Please try again.",
         variant: "destructive",
       });
     }
