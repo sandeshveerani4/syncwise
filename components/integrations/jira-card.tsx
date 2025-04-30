@@ -23,7 +23,7 @@ export function JiraCard() {
 
             <div className="flex items-center mt-2">
               <div className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white group-hover:bg-white/30 transition-colors">
-                Connect
+                View Details
               </div>
             </div>
           </div>

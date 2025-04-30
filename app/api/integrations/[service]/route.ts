@@ -32,6 +32,19 @@ export async function DELETE(
       );
     }
 
+    if (service === "github") {
+      await prisma.project.update({
+        where: {
+          id: project.id,
+        },
+        data: {
+          githubRepo: undefined,
+          additionalData: {}, // To check when will have other keys as well
+        },
+      });
+      return NextResponse.json({ message: "Integration removed successfully" });
+    }
+
     // Delete the integration
     await prisma.apiKey.deleteMany({
       where: {

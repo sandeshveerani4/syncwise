@@ -43,6 +43,8 @@ import {
   CrossCircledIcon,
 } from "@radix-ui/react-icons";
 import { useToast } from "@/hooks/use-toast";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 const apiKeySchema = z.object({
   key: z.string().min(1, { message: "API key is required" }),
@@ -60,7 +62,7 @@ interface IntegrationCardProps {
     label: string;
     description: string;
   };
-  onConnect: (data: { key: string; additionalField?: string }) => void;
+  onConnect?: (data: { key: string; additionalField?: string }) => void;
   onDisconnect: () => void;
 }
 
@@ -84,7 +86,7 @@ function IntegrationCard({
   });
 
   function onSubmit(data: z.infer<typeof apiKeySchema>) {
-    onConnect(data);
+    onConnect && onConnect(data);
     setIsDialogOpen(false);
     form.reset();
   }
@@ -119,76 +121,78 @@ function IntegrationCard({
             Disconnect
           </Button>
         ) : (
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>Connect</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Connect {title}</DialogTitle>
-                <DialogDescription>
-                  Enter your {title} API credentials to connect your account.
-                </DialogDescription>
-              </DialogHeader>
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-4"
-                >
-                  <FormField
-                    control={form.control}
-                    name="key"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>API Key</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder={`Enter your ${title} API key`}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {service === "github"
-                            ? "Create a token with repo and user scopes."
-                            : service === "slack"
-                            ? "Create a Slack bot token from the Slack API dashboard."
-                            : service === "jira"
-                            ? "Create an API token from your Atlassian account settings."
-                            : "Create an API key from your Google Cloud Console."}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {additionalField && (
+          onConnect && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>Connect</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Connect {title}</DialogTitle>
+                  <DialogDescription>
+                    Enter your {title} API credentials to connect your account.
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-4"
+                  >
                     <FormField
                       control={form.control}
-                      name="additionalField"
+                      name="key"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{additionalField.label}</FormLabel>
+                          <FormLabel>API Key</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder={`Enter your ${additionalField.name}`}
+                              type="password"
+                              placeholder={`Enter your ${title} API key`}
                               {...field}
                             />
                           </FormControl>
                           <FormDescription>
-                            {additionalField.description}
+                            {service === "github"
+                              ? "Create a token with repo and user scopes."
+                              : service === "slack"
+                              ? "Create a Slack bot token from the Slack API dashboard."
+                              : service === "jira"
+                              ? "Create an API token from your Atlassian account settings."
+                              : "Create an API key from your Google Cloud Console."}
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  )}
-                  <DialogFooter>
-                    <Button type="submit">Connect</Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+                    {additionalField && (
+                      <FormField
+                        control={form.control}
+                        name="additionalField"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{additionalField.label}</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder={`Enter your ${additionalField.name}`}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              {additionalField.description}
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    <DialogFooter>
+                      <Button type="submit">Connect</Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          )
         )}
       </CardFooter>
     </Card>
@@ -204,6 +208,8 @@ export function IntegrationSettings() {
     calendar: false,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const { update } = useSession();
+  const router = useRouter();
 
   // Fetch existing integrations on component mount
   useEffect(() => {
@@ -315,6 +321,23 @@ export function IntegrationSettings() {
     }
   };
 
+  const handleUnboard = async () => {
+    try {
+      const response = await fetch(`/api/user/unboard`, { method: "POST" });
+      if (!response.ok) {
+        throw new Error("Failed to disconnect integration");
+      }
+      await update({ onboarded: false });
+      router.refresh();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to disconnect integration. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center p-8">Loading integrations...</div>
@@ -322,49 +345,55 @@ export function IntegrationSettings() {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <IntegrationCard
-        title="GitHub"
-        description="Connect to your GitHub repositories"
-        icon={<GitHubLogoIcon className="h-6 w-6" />}
-        connected={integrations.github}
-        service="github"
-        onConnect={(data) => handleConnect("github", data)}
-        onDisconnect={() => handleDisconnect("github")}
-      />
-      <IntegrationCard
-        title="Slack"
-        description="Connect to your Slack workspace"
-        icon={<ChatBubbleIcon className="h-6 w-6" />}
-        connected={integrations.slack}
-        service="slack"
-        onConnect={(data) => handleConnect("slack", data)}
-        onDisconnect={() => handleDisconnect("slack")}
-      />
-      <IntegrationCard
-        title="Jira"
-        description="Connect to your Jira projects"
-        icon={<MixIcon className="h-6 w-6" />}
-        service="jira"
-        additionalField={{
-          name: "domain",
-          label: "Jira Domain",
-          description:
-            "Enter your Jira domain (e.g., your-company.atlassian.net)",
-        }}
-        connected={integrations.jira}
-        onConnect={(data) => handleConnect("jira", data)}
-        onDisconnect={() => handleDisconnect("jira")}
-      />
-      <IntegrationCard
-        title="Google Calendar"
-        description="Connect to your Google Calendar"
-        icon={<CalendarIcon className="h-6 w-6" />}
-        connected={integrations.calendar}
-        service="calendar"
-        onConnect={(data) => handleConnect("calendar", data)}
-        onDisconnect={() => handleDisconnect("calendar")}
-      />
-    </div>
+    <>
+      <div className="grid gap-6 md:grid-cols-2">
+        <IntegrationCard
+          title="GitHub"
+          description="Connect to your GitHub repositories"
+          icon={<GitHubLogoIcon className="h-6 w-6" />}
+          connected={integrations.github}
+          service="github"
+          // onConnect={(data) => handleConnect("github", data)}
+          onDisconnect={() => handleDisconnect("github")}
+        />
+        <IntegrationCard
+          title="Slack"
+          description="Connect to your Slack workspace"
+          icon={<ChatBubbleIcon className="h-6 w-6" />}
+          connected={integrations.slack}
+          service="slack"
+          // onConnect={(data) => handleConnect("slack", data)}
+          onDisconnect={() => handleDisconnect("slack")}
+        />
+        <IntegrationCard
+          title="Jira"
+          description="Connect to your Jira projects"
+          icon={<MixIcon className="h-6 w-6" />}
+          service="jira"
+          additionalField={{
+            name: "domain",
+            label: "Jira Domain",
+            description:
+              "Enter your Jira domain (e.g., your-company.atlassian.net)",
+          }}
+          connected={integrations.jira}
+          // onConnect={(data) => handleConnect("jira", data)}
+          onDisconnect={() => handleDisconnect("jira")}
+        />
+        <IntegrationCard
+          title="Google Calendar"
+          description="Connect to your Google Calendar"
+          icon={<CalendarIcon className="h-6 w-6" />}
+          connected={integrations.calendar}
+          service="calendar"
+          // onConnect={(data) => handleConnect("calendar", data)}
+          onDisconnect={() => handleDisconnect("calendar")}
+        />
+      </div>
+      <div>
+        <div>To connect services, go to onboarding:</div>
+        <Button onClick={handleUnboard}>Move to onboarding</Button>
+      </div>
+    </>
   );
 }
