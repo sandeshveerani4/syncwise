@@ -5,7 +5,7 @@ import * as z from "zod";
 
 const integrationSchema = z.object({
   service: z.string(),
-  key: z.string(),
+  key: z.string().optional(),
   additionalData: z.record(z.string(), z.string()).optional(),
 });
 
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
           id: existingIntegration.id,
         },
         data: {
-          key,
+          ...(key && { key: key }),
           additionalData,
         },
       });
@@ -109,6 +109,10 @@ export async function POST(req: Request) {
         },
         message: "Integration updated successfully",
       });
+    }
+
+    if (!key) {
+      return NextResponse.json({ message: "Key is required" }, { status: 500 });
     }
 
     const integration = await prisma.apiKey.create({

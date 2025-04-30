@@ -18,6 +18,7 @@ import { MixIcon } from "@radix-ui/react-icons";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
+  projectKey: z.string().optional(),
   domain: z.string().optional(),
   token: z.string().optional(),
   email: z.string().optional(),
@@ -25,11 +26,17 @@ const formSchema = z.object({
 
 interface JiraIntegrationFormProps {
   initialData: {
+    projectKey: string;
     domain: string;
     token: string;
     email?: string;
   };
-  onUpdate: (data: { domain: string; token: string; email: string }) => void;
+  onUpdate: (data: {
+    domain: string;
+    token: string;
+    email: string;
+    projectKey: string;
+  }) => void;
   onNext: () => void;
   onBack: () => void;
 }
@@ -45,6 +52,7 @@ export function JiraIntegrationForm({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      projectKey: initialData.projectKey || "",
       domain: initialData.domain || "",
       token: initialData.token || "",
       email: initialData.email || "",
@@ -52,28 +60,31 @@ export function JiraIntegrationForm({
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.token && values.email && values.domain) {
-      if (values.token !== "Stored in DB") {
-        const res = await fetch("/api/integrations", {
-          headers: { "Content-Type": "application/json" },
-          method: "POST",
-          body: JSON.stringify({
-            service: "jira",
-            key: values.token,
-            additionalData: { domain: values.domain, email: values.email },
-          }),
+    if (values.token && values.email && values.domain && values.projectKey) {
+      const res = await fetch("/api/integrations", {
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+        body: JSON.stringify({
+          service: "jira",
+          ...(values.token !== "Stored in DB" && { key: values.token }),
+          additionalData: {
+            domain: values.domain,
+            email: values.email,
+            projectKey: values.projectKey,
+          },
+        }),
+      });
+      if (!res.ok) {
+        toast({
+          title: "Error",
+          description: "Something went wrong!",
+          variant: "destructive",
         });
-        if (!res.ok) {
-          toast({
-            title: "Error",
-            description: "Something went wrong!",
-            variant: "destructive",
-          });
-          return;
-        }
+        return;
       }
 
       onUpdate({
+        projectKey: values.projectKey,
         domain: values.domain,
         token: values.token,
         email: values.email,
@@ -91,6 +102,23 @@ export function JiraIntegrationForm({
       </div>
 
       <Form {...form}>
+        <FormField
+          control={form.control}
+          name="projectKey"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Jira Project Key</FormLabel>
+              <FormControl>
+                <Input placeholder="Project Key" {...field} />
+              </FormControl>
+              <FormDescription>
+                Enter your Jira Project Key (e.g., `BTS` is the key here:
+                your-company.atlassian.net/jira/software/projects/BTS)
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="domain"

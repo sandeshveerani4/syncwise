@@ -21,6 +21,7 @@ type ProjectData = {
     repositoryId?: number;
   };
   jira: {
+    projectKey: string;
     domain: string;
     token: string;
     email: string;
@@ -45,6 +46,7 @@ export function CreateProjectWizard() {
       repository: "",
     },
     jira: {
+      projectKey: "",
       domain: "",
       token: "",
       email: "",
@@ -150,6 +152,7 @@ export function CreateProjectWizard() {
           },
           ...(jira && {
             jira: {
+              projectKey: jira.additionalData.projectKey,
               domain: jira.additionalData.domain,
               email: jira.additionalData.email,
               token: "Stored in DB",
