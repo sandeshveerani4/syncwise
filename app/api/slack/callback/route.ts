@@ -3,8 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 const REDIRECT_URI = `${
-  process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
+  process.env.SITE_URL
+    ? `https://${process.env.SITE_URL}`
     : "http://localhost:3000"
 }`;
 export async function GET(req: NextRequest) {

@@ -6,8 +6,8 @@ import { prisma } from "@/lib/db";
 // Google OAuth configuration
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const REDIRECT_URI = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
+const REDIRECT_URI = process.env.SITE_URL
+  ? `https://${process.env.SITE_URL}`
   : "http://localhost:3000";
 
 export async function GET(req: NextRequest) {

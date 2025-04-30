@@ -4,8 +4,8 @@ import { google } from "googleapis";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const REDIRECT_URI = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}/api/calendar/callback`
+const REDIRECT_URI = process.env.SITE_URL
+  ? `https://${process.env.SITE_URL}/api/calendar/callback`
   : "http://localhost:3000/api/calendar/callback";
 
 export async function GET() {
