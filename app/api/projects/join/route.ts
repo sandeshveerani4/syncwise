@@ -40,8 +40,8 @@ export async function POST(req: Request) {
 
     // Mark user as onboarded
     await prisma.user.update({
-      where: { id: session.user.id, projectId: project.id },
-      data: { onboarded: true },
+      where: { id: session.user.id },
+      data: { onboarded: true, projectId: project.id },
     });
 
     return NextResponse.json({ project }, { status: 200 });

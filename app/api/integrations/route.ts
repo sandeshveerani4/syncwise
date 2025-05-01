@@ -13,14 +13,14 @@ export async function GET() {
   try {
     const session = await auth();
 
-    if (!session || !session.user) {
+    if (!session || !session.user || !session.user.projectId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     // Get the user's current project
     const project = await prisma.project.findFirst({
       where: {
-        userId: session.user.id,
+        id: session.user.projectId,
       },
       orderBy: {
         createdAt: "desc",

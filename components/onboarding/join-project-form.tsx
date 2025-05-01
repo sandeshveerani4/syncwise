@@ -29,7 +29,7 @@ export function JoinProjectForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const { update } = useSession();
+  const { update: updateSession } = useSession();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -53,10 +53,12 @@ export function JoinProjectForm() {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to join project");
       }
-      const project = await response.json();
+      const body = await response.json();
 
-      if (project.id) {
-        await update({ projectId: project.id, onboarded: true });
+      if (body.project.id) {
+        await updateSession({ projectId: body.project.id, onboarded: true });
+      } else {
+        throw new Error("Something went wrong");
       }
 
       toast({
