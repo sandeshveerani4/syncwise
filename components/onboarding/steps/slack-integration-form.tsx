@@ -58,7 +58,7 @@ export function SlackIntegrationForm({
       ) : (
         <Button asChild>
           <Link
-            href={`https://slack.com/oauth/v2/authorize?scope=app_mentions:read,assistant:write,channels:history,channels:join,channels:manage,channels:read,chat:write,chat:write.customize,chat:write.public,commands,files:read,files:write,groups:history,groups:read,groups:write,im:history,im:read,im:write,links:read,links:write,mpim:history,mpim:read,mpim:write,pins:read,pins:write,reactions:read,reactions:write,reminders:read,reminders:write,team:read,usergroups:read,usergroups:write,users.profile:read,users:read,users:write&client_id=8735187721536.8698721469175&state=${session.data.user.id}`}
+            href={`https://slack.com/oauth/v2/authorize?scope=app_mentions:read,assistant:write,channels:history,channels:join,channels:manage,channels:read,chat:write,chat:write.customize,chat:write.public,commands,files:read,files:write,groups:history,groups:read,groups:write,im:history,im:read,im:write,links:read,links:write,mpim:history,mpim:read,mpim:write,pins:read,pins:write,reactions:read,reactions:write,reminders:read,reminders:write,team:read,usergroups:read,usergroups:write,users.profile:read,users:read,users:write&client_id=${process.env.NEXT_PUBLIC_SLACK_CLIENT_ID}&state=${session.data.user.id}`}
           >
             Add to Slack
           </Link>
