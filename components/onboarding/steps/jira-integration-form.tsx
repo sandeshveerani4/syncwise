@@ -126,10 +126,14 @@ export function JiraIntegrationForm({
             <FormItem>
               <FormLabel>Jira Domain</FormLabel>
               <FormControl>
-                <Input placeholder="your-company.atlassian.net" {...field} />
+                <Input
+                  placeholder="https://your-company.atlassian.net"
+                  {...field}
+                />
               </FormControl>
               <FormDescription>
-                Enter your Jira domain (e.g., your-company.atlassian.net)
+                Enter your Jira domain (e.g.,
+                https://your-company.atlassian.net) https is required
               </FormDescription>
               <FormMessage />
             </FormItem>
