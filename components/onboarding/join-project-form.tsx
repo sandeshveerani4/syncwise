@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useSession } from "next-auth/react";
 
 const formSchema = z.object({
   inviteCode: z.string().min(6, {
@@ -28,6 +29,7 @@ export function JoinProjectForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const { update } = useSession();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -51,16 +53,10 @@ export function JoinProjectForm() {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to join project");
       }
+      const project = await response.json();
 
-      // Mark user as onboarded
-      const onboardResponse = await fetch("/api/user/onboard", {
-        method: "POST",
-      });
-
-      if (!onboardResponse.ok) {
-        console.error(
-          "Failed to mark user as onboarded, but project was joined"
-        );
+      if (project.id) {
+        await update({ projectId: project.id, onboarded: true });
       }
 
       toast({
