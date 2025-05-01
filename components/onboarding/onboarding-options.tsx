@@ -46,7 +46,10 @@ export function OnboardingOptions() {
       <CardFooter className="flex justify-between border-t px-6 py-4">
         <p className="text-sm text-muted-foreground">
           Need help?{" "}
-          <a href="/support" className="text-primary hover:underline">
+          <a
+            href="mailto:sandeshveerani4@gmail.com"
+            className="text-primary hover:underline"
+          >
             Contact support
           </a>
         </p>
