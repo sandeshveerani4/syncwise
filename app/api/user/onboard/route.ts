@@ -35,17 +35,6 @@ export async function POST() {
       );
     }
 
-    if (
-      !project.githubRepo ||
-      !project.apiKeys.find((x) => x.service === "jira") ||
-      !project.apiKeys.find((x) => x.service === "slack")
-    ) {
-      return NextResponse.json(
-        { message: "Services not connected properly!" },
-        { status: 404 }
-      );
-    }
-
     await prisma.user.update({
       where: {
         id: session.user.id,
