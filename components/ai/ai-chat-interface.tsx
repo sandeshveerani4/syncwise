@@ -67,7 +67,7 @@ export function AiChatInterface() {
     setInput("");
 
     const ws = new WebSocket(
-      `wss://${process.env.NEXT_PUBLIC_BACKEND_URL}/ws/${session.data.user.id}/${cid}`
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/ws/${session.data.user.id}/${cid}`
     );
     ws.onmessage = function (event) {
       const data = JSON.parse(event.data);
