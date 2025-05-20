@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AiMessage } from "@/components/ai/ai-message";
-import { SendIcon, Loader2 } from "lucide-react";
+import { SendIcon, Loader2, ArrowUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
 import { Textarea } from "../ui/textarea";
@@ -134,8 +134,8 @@ export function AiChatInterface() {
         )}
         <div key={"tempMessage"} ref={messagesEndRef} />
       </ScrollArea>
-      <div className="p-4 border-t shadow-md max-h-[200px]">
-        <div className="flex items-center gap-2">
+      <div className="p-4">
+        <div className="flex items-center gap-2 p-1 pr-3 rounded-2xl bg-neutral-800">
           <Textarea
             autoFocus
             ref={inputRef}
@@ -145,14 +145,15 @@ export function AiChatInterface() {
             onKeyDown={handleKeyDown}
             disabled={isLoading}
             rows={1} // ← start off at 3 lines tall
-            className="resize-none max-h-[200px]" // no manual resize if you prefer
+            className="resize-none max-h-[200px] !border-none bg-transparent"
+            style={{ boxShadow: "none" }}
           />
           <Button
             onClick={handleSendMessage}
+            className="rounded-full w-8 h-8"
             disabled={isLoading || !input.trim()}
           >
-            <SendIcon className="h-4 w-4 mr-2" />
-            Send
+            <ArrowUp className="h-4 w-4" />
           </Button>
         </div>
       </div>
