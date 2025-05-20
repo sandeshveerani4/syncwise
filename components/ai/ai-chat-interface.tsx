@@ -11,6 +11,7 @@ import { AiMessage } from "@/components/ai/ai-message";
 import { SendIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
+import { Textarea } from "../ui/textarea";
 
 type MessageType = {
   id: string;
@@ -25,7 +26,7 @@ export function AiChatInterface() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const session = useSession();
   const [chatId, setChatId] = useState<string>();
@@ -102,13 +103,16 @@ export function AiChatInterface() {
 
   useEffect(() => {
     if (!isLoading && response) {
+      setMessages((prev) => [
+        ...prev,
+        { ...response, id: Date.now().toString() },
+      ]);
       setResponse(undefined);
-      setMessages((prev) => [...prev, response]);
       if (inputRef.current) inputRef.current.focus();
     }
   }, [isLoading, response]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -116,47 +120,42 @@ export function AiChatInterface() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] flex-col">
-      <Card className="flex-1 overflow-auto flex flex-col">
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4">
-            {messages.map((message) => (
-              <AiMessage key={message.id} message={message} />
-            ))}
-            {isLoading && response && (
-              <AiMessage key="final" message={response} />
-            )}
-            {isLoading && (
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            )}
-            {isLoading && tool && (
-              <div className="text-sm text-neutral-500">{tool}</div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
-        <div className="p-4 border-t">
-          <div className="flex items-center gap-2">
-            <Input
-              autoFocus
-              ref={inputRef}
-              placeholder="Type your message..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={isLoading}
-              className="flex-1"
-            />
-            <Button
-              onClick={handleSendMessage}
-              disabled={isLoading || !input.trim()}
-            >
-              <SendIcon className="h-4 w-4 mr-2" />
-              Send
-            </Button>
-          </div>
+    <div className="flex-grow flex flex-col h-screen">
+      <ScrollArea className="flex-1 overflow-auto px-4">
+        <div key={"permMessages"} className="space-y-4 my-4">
+          {messages.map((message) => (
+            <AiMessage key={`realMessage-${message.id}`} message={message} />
+          ))}
         </div>
-      </Card>
+        {isLoading && response && <AiMessage key="final" message={response} />}
+        {isLoading && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
+        {isLoading && tool && (
+          <div className="text-sm text-neutral-500">{tool}</div>
+        )}
+        <div key={"tempMessage"} ref={messagesEndRef} />
+      </ScrollArea>
+      <div className="p-4 border-t shadow-md max-h-[200px]">
+        <div className="flex items-center gap-2">
+          <Textarea
+            autoFocus
+            ref={inputRef}
+            placeholder="Type your message..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isLoading}
+            rows={1} // ← start off at 3 lines tall
+            className="resize-none max-h-[200px]" // no manual resize if you prefer
+          />
+          <Button
+            onClick={handleSendMessage}
+            disabled={isLoading || !input.trim()}
+          >
+            <SendIcon className="h-4 w-4 mr-2" />
+            Send
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

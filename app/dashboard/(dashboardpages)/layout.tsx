@@ -33,16 +33,12 @@ export default async function DashboardLayout({
               <span className="font-bold text-xl">SyncWise AI</span>
             </Link>
           </div>
+          <DashboardNav />
           <UserNav user={session.user} />
         </div>
       </header>
-      <div className="container flex-1 grid gap-8 md:grid-cols-[200px_1fr] lg:grid-cols-[240px_1fr] mx-auto py-4 px-4 md:px-6">
-        <aside className="hidden w-[200px] flex-col md:flex lg:w-[240px]">
-          <DashboardNav />
-        </aside>
-        <main className="flex w-full flex-1 flex-col overflow-hidden">
-          {children}
-        </main>
+      <div className="flex flex-1 p-4">
+        <main className="flex w-full flex-1 h-full flex-col">{children}</main>
       </div>
     </div>
   );
