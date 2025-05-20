@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function AiPage() {
   return (
     <div className="flex flex-1">
-      <AiSidebar />
+      {/* <AiSidebar /> */}
       <AiChatInterface />
     </div>
   );
