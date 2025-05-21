@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export function GitHubCard() {
   return (
-    <Link href="https://github.com" target="_blank" className="block group">
+    <Link href="/dashboard/ai?q=GitHub: " className="block group">
       <Card className="overflow-hidden border-none shadow-md transition-all duration-300 hover:shadow-xl hover:scale-[1.02] h-full">
         <div className="bg-gradient-to-br from-blue-500 to-indigo-700 p-6 h-full">
           <div className="flex flex-col space-y-4 h-full">

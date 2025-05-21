@@ -4,11 +4,7 @@ import Link from "next/link";
 
 export function CalendarCard() {
   return (
-    <Link
-      href="https://calendar.google.com"
-      target="_blank"
-      className="block group"
-    >
+    <Link href="/dashboard/ai?q=Calendar: " className="block group">
       <Card className="overflow-hidden border-none shadow-md transition-all duration-300 hover:shadow-xl hover:scale-[1.02] h-full">
         <div className="bg-gradient-to-br from-emerald-500 to-green-600 p-6 h-full">
           <div className="flex flex-col space-y-4 h-full">

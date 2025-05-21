@@ -4,7 +4,7 @@ import type React from "react";
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AiMessage } from "@/components/ai/ai-message";
@@ -12,6 +12,7 @@ import { SendIcon, Loader2, ArrowUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
 import { Textarea } from "../ui/textarea";
+import { useSearchParams } from "next/navigation";
 
 type MessageType = {
   id: string;
@@ -30,6 +31,11 @@ export function AiChatInterface() {
   const { toast } = useToast();
   const session = useSession();
   const [chatId, setChatId] = useState<string>();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    setInput(searchParams.get("q") || "");
+  }, [searchParams]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -121,6 +127,49 @@ export function AiChatInterface() {
 
   return (
     <div className="flex-grow flex flex-col h-screen">
+      {messages.length === 0 && !isLoading && !response && (
+        <div className="h-full w-full flex flex-col gap-4 items-center justify-center text-neutral-500 text-center">
+          <div>Type something to interact with the integrated services.</div>
+          <div className="flex flex-wrap items-center justify-center gap-2 max-w-[700px] px-2">
+            <Button
+              variant="outline"
+              className="flex flex-col items-center justify-center py-1 px-2 text-sm text-neutral-300"
+              onClick={() => {
+                setInput("List GitHub branches");
+              }}
+            >
+              List GitHub branches
+            </Button>
+            <Button
+              variant="outline"
+              className="flex flex-col items-center justify-center py-1 px-2 text-sm text-neutral-300"
+              onClick={() => {
+                setInput("List Slack channels");
+              }}
+            >
+              List Slack channels
+            </Button>
+            <Button
+              variant="outline"
+              className="flex flex-col items-center justify-center py-1 px-2 text-sm text-neutral-300"
+              onClick={() => {
+                setInput("List Jira tasks");
+              }}
+            >
+              List Jira tasks
+            </Button>
+            <Button
+              variant="outline"
+              className="flex flex-col items-center justify-center py-1 px-2 text-sm text-neutral-300"
+              onClick={() => {
+                setInput("List upcoming calendar events");
+              }}
+            >
+              List upcoming calendar events
+            </Button>
+          </div>
+        </div>
+      )}
       <ScrollArea className="flex-1 overflow-auto px-4">
         <div key={"permMessages"} className="space-y-4 my-4">
           {messages.map((message) => (
