@@ -70,4 +70,5 @@ model Meeting {
   end_date      DateTime?
   bot_id        String?
   bot_data      Json      @default("{}")
+  summary       String?   @default("")
 }

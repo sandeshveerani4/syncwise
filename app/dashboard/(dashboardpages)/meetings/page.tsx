@@ -16,12 +16,20 @@ import {
   ExternalLink,
   Video,
   CheckSquare,
+  FileText,
 } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { CreateMeetingButton } from "@/components/meetings/create-meeting-button";
 import Link from "next/link";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import Markdown from "react-markdown";
 
 export const metadata: Metadata = {
   title: "Meetings | SyncWise AI",
@@ -81,6 +89,8 @@ export default async function MeetingsPage() {
             const botData: any = meeting.bot_data;
             const hasTasks = Array.isArray(tasks) && tasks.length > 0;
             const hasBotState = botData && botData.state;
+            const meetingSummary =
+              meeting.summary || "No summary available for this meeting yet.";
 
             return (
               <Card key={meeting.id}>
@@ -173,6 +183,24 @@ export default async function MeetingsPage() {
                       </div>
                     </div>
                   )}
+
+                  <div className="mt-4">
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="summary" className="border-b-0">
+                        <AccordionTrigger className="py-2 text-sm font-medium">
+                          <div className="flex items-center">
+                            <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
+                            Meeting Summary
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="rounded-md bg-muted p-3 text-sm">
+                            <Markdown>{meetingSummary}</Markdown>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </div>
 
                   {/* Attendees */}
                   {meeting.attendees && meeting.attendees.length > 0 && (
