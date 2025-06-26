@@ -4,14 +4,13 @@ import Markdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Button } from "../ui/button";
-import { Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { MessageType } from "./ai-chat-interface";
+import { ToolsModal } from "./tools-modal";
+import { Wrench } from "lucide-react";
 
 type MessageProps = {
-  message: {
-    role: "user" | "assistant";
-    content: string;
-  };
+  message: MessageType;
 };
 
 function Pre({
@@ -23,7 +22,6 @@ function Pre({
 }) {
   const [copyOk, setCopyOk] = useState(false);
   const { toast } = useToast();
-  console.log(children);
 
   const handleClick = () => {
     if (children) {
@@ -63,24 +61,28 @@ function Pre({
 
 export function AiMessage({ message }: MessageProps) {
   const isUser = message.role === "user";
+  const [showModal, setShowModal] = useState(false);
+
+  const hasToolCalls =
+    message.toolCalls !== undefined && message.toolCalls.length > 0;
 
   return (
     <div
       className={cn(
         "flex items-start gap-3 text-sm",
-        isUser ? "flex-row-reverse" : "flex-row"
+        isUser ? "flex-row-reverse" : "flex-row",
       )}
     >
       <div
         className={cn(
           "flex max-w-[80%] flex-col gap-1",
-          isUser ? "items-end" : "items-start"
+          isUser ? "items-end" : "items-start",
         )}
       >
         <div
           className={cn(
             "rounded-lg p-3 w-full overflow-auto",
-            isUser ? "bg-neutral-700" : "bg-muted"
+            isUser ? "bg-neutral-700" : "bg-muted",
           )}
         >
           {isUser ? (
@@ -114,6 +116,25 @@ export function AiMessage({ message }: MessageProps) {
             </Markdown>
           )}
         </div>
+        {hasToolCalls && (
+          <>
+            <Button
+              title="Show tool calls"
+              variant="ghost"
+              size="icon"
+              className="mt-2"
+              onClick={() => setShowModal(true)}
+              aria-label="Show tool calls"
+            >
+              <Wrench className="w-4 h-4" />
+            </Button>
+            <ToolsModal
+              toolCalls={message.toolCalls as string[]}
+              onClose={() => setShowModal(false)}
+              open={showModal}
+            />
+          </>
+        )}
       </div>
     </div>
   );

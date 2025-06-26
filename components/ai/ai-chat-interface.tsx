@@ -14,16 +14,16 @@ import { useSession } from "next-auth/react";
 import { Textarea } from "../ui/textarea";
 import { useSearchParams } from "next/navigation";
 
-type MessageType = {
+export type MessageType = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  toolCalls?: string[];
 };
 
 export function AiChatInterface() {
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [response, setResponse] = useState<MessageType>();
-  const [tool, setTool] = useState<string>();
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -74,19 +74,19 @@ export function AiChatInterface() {
     setInput("");
 
     const ws = new WebSocket(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/ws/${session.data.user.id}/${cid}`
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/ws/${session.data.user.id}/${cid}`,
     );
     ws.onmessage = function (event) {
       const data = JSON.parse(event.data);
       if (data[0].kwargs.content !== undefined) {
-        if (data[1]["langgraph_node"] === "agent") {
-          setResponse((prev) => ({
-            ...(prev as MessageType),
-            content: (prev?.content ?? "") + data[0].kwargs.content,
-          }));
-        } else {
-          setTool(data[0].kwargs.content);
-        }
+        setResponse((prev) => ({
+          ...(prev as MessageType),
+          ...(data[1]["langgraph_node"] === "agent"
+            ? { content: (prev?.content ?? "") + data[0].kwargs.content }
+            : {
+                toolCalls: [...(prev?.toolCalls ?? []), data[0].kwargs.content],
+              }),
+        }));
       }
     };
     ws.onerror = function () {
@@ -96,11 +96,9 @@ export function AiChatInterface() {
         variant: "destructive",
       });
       setIsLoading(false);
-      setTool(undefined);
     };
     ws.onclose = function () {
       setIsLoading(false);
-      setTool(undefined);
     };
     ws.onopen = function () {
       ws.send(input);
@@ -178,8 +176,11 @@ export function AiChatInterface() {
         </div>
         {isLoading && response && <AiMessage key="final" message={response} />}
         {isLoading && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
-        {isLoading && tool && (
-          <div className="text-sm text-neutral-500">{tool}</div>
+        {isLoading && response?.toolCalls && response.toolCalls.length > 0 && (
+          <div className="text-sm text-neutral-500 max-h-10 max-w-full text-ellipsis overflow-hidden">
+            <strong>Tool:</strong>{" "}
+            {response.toolCalls[response.toolCalls.length - 1]}
+          </div>
         )}
         <div key={"tempMessage"} ref={messagesEndRef} />
       </ScrollArea>
