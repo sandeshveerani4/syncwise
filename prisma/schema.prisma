@@ -17,10 +17,12 @@ model User {
   onboarded     Boolean     @default(false)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
-  project       Project?    @relation(fields: [projectId], references: [id])
   projectId     String?
   chattoken     ChatToken[]
   meetings      Meeting[]
+  project       Project?    @relation(fields: [projectId], references: [id])
+  accounts      accounts[]
+  sessions      sessions[]
 }
 
 model ChatToken {
@@ -35,40 +37,135 @@ model Project {
   name                 String
   description          String?
   userId               String
-  githubInstallationId Int?
   githubRepo           String?
-  additionalData       Json?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
+  githubInstallationId Int?
+  additionalData       Json?
   apiKeys              ApiKey[]
-  User                 User[]
   meetings             Meeting[]
+  User                 User[]
 }
 
 model ApiKey {
   id             String   @id @default(cuid())
   key            String
   service        String
-  additionalData Json? // JSON column for additional details
+  additionalData Json?
   projectId      String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  project        Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project        Project? @relation(fields: [projectId], references: [id])
 }
 
 model Meeting {
   id            String    @id @default(cuid())
-  name          String?
   userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   projectId     String
-  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   meeting_id    String
-  tasks         Json      @default("{}")
   attendees     String[]  @default([])
   creation_date DateTime  @default(now())
   end_date      DateTime?
-  bot_id        String?
+  name          String?
   bot_data      Json      @default("{}")
+  bot_id        String?
+  tasks         Json      @default("{}")
   summary       String?   @default("")
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model accounts {
+  id                  String  @id
+  user_id             String
+  type                String
+  provider            String
+  provider_account_id String
+  refresh_token       String?
+  access_token        String?
+  expires_at          Int?
+  token_type          String?
+  scope               String?
+  id_token            String?
+  session_state       String?
+  User                User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([provider, provider_account_id])
+}
+
+model checkpoint_blobs {
+  thread_id     String
+  checkpoint_ns String @default("")
+  channel       String
+  version       String
+  type          String
+  blob          Bytes?
+
+  @@id([thread_id, checkpoint_ns, channel, version])
+  @@index([thread_id])
+}
+
+model checkpoint_migrations {
+  v Int @id
+}
+
+model checkpoint_writes {
+  thread_id     String
+  checkpoint_ns String  @default("")
+  checkpoint_id String
+  task_id       String
+  idx           Int
+  channel       String
+  type          String?
+  blob          Bytes
+  task_path     String  @default("")
+
+  @@id([thread_id, checkpoint_ns, checkpoint_id, task_id, idx])
+  @@index([thread_id])
+}
+
+model checkpoints {
+  thread_id            String
+  checkpoint_ns        String  @default("")
+  checkpoint_id        String
+  parent_checkpoint_id String?
+  type                 String?
+  checkpoint           Json
+  metadata             Json    @default("{}")
+
+  @@id([thread_id, checkpoint_ns, checkpoint_id])
+  @@index([thread_id])
+}
+
+model sessions {
+  id            String   @id
+  session_token String   @unique
+  user_id       String
+  expires       DateTime
+  User          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model store {
+  prefix      String
+  key         String
+  value       Json
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
+  expires_at  DateTime? @db.Timestamptz(6)
+  ttl_minutes Int?
+
+  @@id([prefix, key])
+  @@index([prefix])
+}
+
+model store_migrations {
+  v Int @id
+}
+
+model verification_tokens {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
 }

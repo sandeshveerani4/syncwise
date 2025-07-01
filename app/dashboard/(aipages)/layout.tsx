@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { AiChatSidebar } from "@/components/ai/ai-chat-sidebar";
 
 export const metadata: Metadata = {
   title: "Dashboard | SyncWise AI",
@@ -25,10 +26,11 @@ export default async function AiLayout({
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <MobileNav buttonClass="fixed bg-neutral-500/50 left-4 top-2 z-10 p-2 h-8 !flex backdrop-blur-lg" />
+    <div className="flex h-screen">
+      {/* <MobileNav buttonClass="fixed bg-neutral-500/50 left-4 top-2 z-10 p-2 h-8 !flex backdrop-blur-lg" /> */}
+      <AiChatSidebar />
       {/* <SidebarProvider className="flex-1">{children}</SidebarProvider> */}
-      {children}
+      <div className="flex-1 flex flex-col md:ml-0">{children}</div>
     </div>
   );
 }
