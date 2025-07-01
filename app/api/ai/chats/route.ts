@@ -2,7 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 
-interface CheckpointMetadata {
+export interface CheckpointData {
+  v: number;
+  id: string;
+  ts: string;
+  pending_sends: any[];
+  versions_seen: Record<string, any>;
+  channel_versions: Record<string, string>;
+}
+
+export interface CheckpointMetadata {
   step: number;
   source: string;
   writes: {
@@ -24,7 +33,7 @@ interface CheckpointMetadata {
         };
       }>;
     };
-  };
+  } | null;
   parents: Record<string, any>;
   thread_id: string;
   system_message: string;
@@ -34,13 +43,15 @@ interface ChatSummary {
   id: string;
   title: string;
   lastMessage: string;
+  updatedAt: Date;
   messageCount: number;
+  checkpointId: string;
 }
 
 function extractChatTitle(metadata: CheckpointMetadata): string {
   // Try to get the first user message as title
   if (
-    metadata.writes.__start__?.messages &&
+    metadata.writes?.__start__?.messages &&
     metadata.writes.__start__?.messages?.length > 0
   ) {
     const firstMessage = metadata.writes.__start__.messages[0];
@@ -51,7 +62,7 @@ function extractChatTitle(metadata: CheckpointMetadata): string {
 
   // If no start message, try to get from agent messages
   if (
-    metadata.writes.agent?.messages &&
+    metadata.writes?.agent?.messages &&
     metadata.writes.agent?.messages?.length > 0
   ) {
     const firstAgentMessage = metadata.writes.agent.messages[0];
@@ -67,7 +78,7 @@ function extractChatTitle(metadata: CheckpointMetadata): string {
 function extractLastMessage(metadata: CheckpointMetadata): string {
   // Try to get the last agent message
   if (
-    metadata.writes.agent?.messages &&
+    metadata.writes?.agent?.messages &&
     metadata.writes.agent?.messages?.length > 0
   ) {
     const lastMessage =
@@ -82,7 +93,7 @@ function extractLastMessage(metadata: CheckpointMetadata): string {
 
   // Fallback to start message
   if (
-    metadata.writes.__start__?.messages &&
+    metadata.writes?.__start__?.messages &&
     metadata.writes.__start__?.messages?.length > 0
   ) {
     const message = metadata.writes.__start__.messages[0];
@@ -97,11 +108,11 @@ function extractLastMessage(metadata: CheckpointMetadata): string {
 function countMessages(metadata: CheckpointMetadata): number {
   let count = 0;
 
-  if (metadata.writes.__start__?.messages) {
+  if (metadata.writes?.__start__?.messages) {
     count += metadata.writes.__start__.messages.length;
   }
 
-  if (metadata.writes.agent?.messages) {
+  if (metadata.writes?.agent?.messages) {
     count += metadata.writes.agent.messages.length;
   }
 
@@ -121,29 +132,35 @@ export async function GET() {
     const checkpoints = await prisma.$queryRaw<
       Array<{
         thread_id: string;
-        metadata: any;
+        metadata: CheckpointMetadata;
+        checkpoint: CheckpointData;
       }>
     >`
       SELECT DISTINCT ON (thread_id)
         thread_id,
-        metadata
+        metadata,
+        checkpoint
       FROM "ChatToken" a
-      JOIN checkpoints b ON a.
-      WHERE user_id = ${session.user.id}
-      ORDER BY thread_id, step DESC
+      JOIN checkpoints b on a."sessionToken" = b.thread_id
+      WHERE a."userId" = ${session.user.id}
+      ORDER BY thread_id, (b.checkpoint->>'ts')::timestamp DESC
     `;
 
     // Process checkpoints to create chat summaries
-    const chats: ChatSummary[] = checkpoints.map((checkpoint) => {
-      const metadata = checkpoint.metadata as CheckpointMetadata;
+    const chats: ChatSummary[] = checkpoints
+      .map((checkpoint) => {
+        const checkpointTimestamp = new Date(checkpoint.checkpoint.ts);
 
-      return {
-        id: checkpoint.thread_id,
-        title: extractChatTitle(metadata),
-        lastMessage: extractLastMessage(metadata),
-        messageCount: countMessages(metadata),
-      };
-    });
+        return {
+          id: checkpoint.thread_id,
+          title: extractChatTitle(checkpoint.metadata),
+          lastMessage: extractLastMessage(checkpoint.metadata),
+          messageCount: countMessages(checkpoint.metadata),
+          updatedAt: checkpointTimestamp,
+          checkpointId: checkpoint.checkpoint.id,
+        };
+      })
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
     return NextResponse.json({ chats });
   } catch (error) {

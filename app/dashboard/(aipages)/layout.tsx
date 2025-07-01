@@ -30,7 +30,9 @@ export default async function AiLayout({
       {/* <MobileNav buttonClass="fixed bg-neutral-500/50 left-4 top-2 z-10 p-2 h-8 !flex backdrop-blur-lg" /> */}
       <AiChatSidebar />
       {/* <SidebarProvider className="flex-1">{children}</SidebarProvider> */}
-      <div className="flex-1 flex flex-col md:ml-0">{children}</div>
+      <div className="flex-1 flex flex-col md:ml-0 overflow-auto">
+        {children}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { DashboardIcon } from "@radix-ui/react-icons";
 
 // Mock data for chat history
@@ -84,8 +84,16 @@ const mockChatHistory = [
   },
 ];
 
+interface ChatSummary {
+  id: string;
+  title: string;
+  lastMessage: string;
+  updatedAt: Date;
+  messageCount: number;
+}
+
 interface ChatItemProps {
-  chat: (typeof mockChatHistory)[0];
+  chat: ChatSummary;
   isActive: boolean;
   onDelete: (id: string) => void;
   isCollapsed?: boolean;
@@ -183,14 +191,36 @@ function SidebarContent({
   onToggle,
 }: SidebarContentProps) {
   const session = useSession();
+  const [chats, setChats] = useState<ChatSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const pathname = usePathname();
-  const [chatHistory, setChatHistory] = useState(mockChatHistory);
 
   const deleteChat = (id: string) => {
-    setChatHistory(chatHistory.filter((chat) => chat.id !== id));
+    // setChatHistory(chatHistory.filter((chat) => chat.id !== id));
+  };
+  const fetchChats = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/ai/chats");
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch chats");
+      }
+
+      const data = await response.json();
+      setChats(data.chats || []);
+    } catch (err) {
+      console.error("Error fetching chats:", err);
+      setError("Failed to load chats");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const olderChats = chatHistory.filter((chat) => !chat.isToday);
+  useEffect(() => {
+    fetchChats();
+  }, [pathname]);
 
   return (
     <div
@@ -246,29 +276,24 @@ function SidebarContent({
       {/* New Chat Button */}
       <div className="p-4">
         <Button
-          asChild
           className={cn(
             "justify-start gap-2 transition-all",
             isCollapsed ? "w-8 h-8 p-0" : "w-full",
           )}
+          onClick={() => (window.location.href = "/dashboard/ai")}
         >
-          <Link
-            href="/dashboard/ai"
-            title={isCollapsed ? "New chat" : undefined}
-          >
-            <PlusIcon className={`h-4 w-4 ${isCollapsed ? "m-auto" : ""}`} />
-            {!isCollapsed && <span className="truncate">New chat</span>}
-          </Link>
+          <PlusIcon className={`h-4 w-4 ${isCollapsed ? "m-auto" : ""}`} />
+          {!isCollapsed && <span className="truncate">New chat</span>}
         </Button>
       </div>
 
       {/* Chat History */}
       <ScrollArea className="flex-1">
         <div className="space-y-4 px-2 pb-4">
-          {olderChats.length > 0 && (
+          {chats.length > 0 && (
             <div>
               <div className="flex flex-col gap-2">
-                {olderChats.map((chat) => (
+                {chats.map((chat) => (
                   <ChatItem
                     key={chat.id}
                     chat={chat}
@@ -312,11 +337,13 @@ function SidebarContent({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })}>
               <LogOut className="mr-2 h-4 w-4" />
               Log out
             </DropdownMenuItem>

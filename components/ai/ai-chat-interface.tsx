@@ -12,7 +12,7 @@ import { SendIcon, Loader2, ArrowUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
 import { Textarea } from "../ui/textarea";
-import { useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 export type MessageType = {
   id: string;
@@ -22,6 +22,8 @@ export type MessageType = {
 };
 
 export function AiChatInterface() {
+  const params = useParams();
+  const ccid = params?.chatId as string;
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [response, setResponse] = useState<MessageType>();
   const [input, setInput] = useState("");
@@ -32,6 +34,33 @@ export function AiChatInterface() {
   const session = useSession();
   const [chatId, setChatId] = useState<string>();
   const searchParams = useSearchParams();
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (ccid && ccid !== "new") {
+      const loadMessages = async () => {
+        try {
+          setIsLoadingMessages(true);
+          const response = await fetch(`/api/ai/chats/${ccid}/messages`);
+
+          if (response.ok) {
+            const data = await response.json();
+            setMessages(data.messages || []);
+          }
+        } catch (error) {
+          console.error("Error loading messages:", error);
+        } finally {
+          setIsLoadingMessages(false);
+        }
+      };
+
+      loadMessages().then(() => setChatId(ccid));
+    } else {
+      // New chat - clear messages
+      setMessages([]);
+    }
+  }, [ccid]);
 
   useEffect(() => {
     setInput(searchParams.get("q") || "");
@@ -112,6 +141,9 @@ export function AiChatInterface() {
         { ...response, id: Date.now().toString() },
       ]);
       setResponse(undefined);
+      if (!ccid) {
+        router.push(`/dashboard/ai/${chatId}`);
+      }
       if (inputRef.current) inputRef.current.focus();
     }
   }, [isLoading, response]);
@@ -124,7 +156,7 @@ export function AiChatInterface() {
   };
 
   return (
-    <div className="flex-grow flex flex-col h-screen">
+    <div className="flex-grow flex flex-col h-screen overflow-hidden">
       {messages.length === 0 && !isLoading && !response && (
         <div className="h-full w-full flex flex-col gap-4 items-center justify-center text-neutral-500 text-center">
           <div>Type something to interact with the integrated services.</div>
@@ -168,10 +200,13 @@ export function AiChatInterface() {
           </div>
         </div>
       )}
-      <ScrollArea className="flex-1 overflow-auto px-4">
+      <div className="flex-1 w-full px-4 overflow-auto">
         <div key={"permMessages"} className="space-y-4 my-4">
-          {messages.map((message) => (
-            <AiMessage key={`realMessage-${message.id}`} message={message} />
+          {messages.map((message, index) => (
+            <AiMessage
+              key={`realMessage-${message.id}-${index}`}
+              message={message}
+            />
           ))}
         </div>
         {isLoading && response && <AiMessage key="final" message={response} />}
@@ -183,7 +218,7 @@ export function AiChatInterface() {
           </div>
         )}
         <div key={"tempMessage"} ref={messagesEndRef} />
-      </ScrollArea>
+      </div>
       <div className="p-4">
         <div className="flex items-center gap-2 p-1 pr-3 rounded-2xl bg-neutral-800">
           <Textarea
